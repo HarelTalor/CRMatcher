@@ -11,7 +11,7 @@
   
   <style>
     /* ==========================================================================
-       1. DESIGN SYSTEM & COLOR THEME VARIABLES (GitHub Default Colors)
+       1. DESIGN SYSTEM & COLOR THEME VARIABLES (GitHub Default & Green Accent)
        ========================================================================== */
     :root {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -23,9 +23,9 @@
       --color-surface-elevated: #ffffff;
       --color-text: #24292f;
       --color-text-secondary: #57606a;
-      --color-accent: #0969da;
-      --color-accent-hover: #0c57d0;
-      --color-accent-soft: rgba(9, 105, 218, 0.08);
+      --color-accent: #2da44e; /* GitHub Light Green */
+      --color-accent-hover: #2c974b;
+      --color-accent-soft: rgba(45, 164, 78, 0.08);
       --color-border: #d0d7de;
       --color-border-light: #ebf0f4;
       --color-muted: #57606a;
@@ -49,9 +49,9 @@
       --color-surface-elevated: #21262d;
       --color-text: #c9d1d9;
       --color-text-secondary: #8b949e;
-      --color-accent: #2f81f7;
-      --color-accent-hover: #58a6ff;
-      --color-accent-soft: rgba(47, 129, 247, 0.12);
+      --color-accent: #238636; /* GitHub Dark Green */
+      --color-accent-hover: #2ea44f;
+      --color-accent-soft: rgba(35, 134, 54, 0.12);
       --color-border: #30363d;
       --color-border-light: #21262d;
       --color-muted: #8b949e;
@@ -174,7 +174,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      padding: 0.125rem 0.5rem;
+      padding: 0.2rem 0.6rem;
       font-size: 0.75rem;
       font-weight: 600;
       border-radius: 100px;
@@ -182,6 +182,7 @@
     .badge-completed {
       background-color: var(--color-success-soft);
       color: var(--color-success);
+      border: 1px solid rgba(35, 134, 54, 0.3);
     }
 
     /* ==========================================================================
@@ -450,7 +451,7 @@
       gap: 1.25rem;
     }
 
-    /* Sleek developer-slate card design */
+    /* Sleek developer-slate card design with official GitHub Green accent highlight */
     .crCard {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -572,7 +573,7 @@
     }
     .reviewerCompleted {
       color: var(--color-success);
-      border-color: rgba(26, 127, 55, 0.4);
+      border-color: rgba(35, 134, 54, 0.4);
       background-color: var(--color-success-soft);
     }
 
@@ -607,10 +608,6 @@
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 10px;
-    }
-    .emptyStateIcon {
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
     }
     .emptyState h3 {
       font-size: 1.125rem;
@@ -755,12 +752,15 @@
   <nav class="navbar">
     <div class="container flex align-center justify-between" style="height: 100%;">
       <a href="#" class="navBrand" onclick="app.showDashboard()">
-        🔍 CR Matcher
+        <!-- Code SVG Logo Icon (Brackets/Terminal Style) -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right: 0.25rem;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        CR Matcher
       </a>
       
       <div class="navActions">
         <button id="theme-toggle" class="themeToggle" onclick="app.toggleTheme()" title="Toggle Theme">
-          🌙
+          <!-- Moon SVG -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
         <div id="nav-user" style="display: none;">
           <div class="userProfile">
@@ -934,17 +934,22 @@
         }
       }
 
-      // Toasts notifications
+      // Toasts notifications (Using premium SVG Icons!)
       addToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         
-        let emoji = '✓';
-        if (type === 'error') emoji = '✕';
-        if (type === 'info') emoji = 'ℹ';
+        let iconSvg = '';
+        if (type === 'success') {
+          iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-success);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+        } else if (type === 'error') {
+          iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-danger);"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        } else {
+          iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-warning);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+        }
         
-        toast.innerHTML = `<span>${emoji}</span><div>${message}</div>`;
+        toast.innerHTML = `${iconSvg}<div>${message}</div>`;
         container.appendChild(toast);
         
         setTimeout(() => {
@@ -960,7 +965,14 @@
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', newTheme);
-        document.getElementById('theme-toggle').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+        
+        // Update Theme Button Icon (Sun SVG vs Moon SVG)
+        const toggleBtn = document.getElementById('theme-toggle');
+        if (newTheme === 'dark') {
+          toggleBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+        } else {
+          toggleBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+        }
       }
 
       // VIEW ROUTER
@@ -1133,7 +1145,7 @@
 
         container.innerHTML = repos.map(repo => `
           <div class="repoListItem">
-            <span>📁 ${repo}</span>
+            <span>${repo}</span>
             <button class="btn btn-danger btn-sm" onclick="app.removeTrackedRepo('${repo}')">Remove</button>
           </div>
         `).join('');
@@ -1251,8 +1263,11 @@
         if (list.length === 0) {
           container.innerHTML = `
             <div class="emptyState">
-              <div class="emptyStateIcon">🎉</div>
-              <h3>No reviews here!</h3>
+              <div class="emptyStateIcon">
+                <!-- Lock/Inbox SVG icon representing clean empty state -->
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-muted);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </div>
+              <h3>No reviews here</h3>
               <p>${this.currentTab === 'active' 
                 ? 'No active review requests right now. Enjoy the peace!' 
                 : 'No completed reviews are in the history yet.'}</p>
@@ -1280,7 +1295,9 @@
 
           const statusBadge = cr.status !== 'OPEN' ? `
             <span class="badge badge-completed">
-              ✓ ${cr.status}
+              <!-- Mini Check SVG -->
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:2px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Completed
             </span>
           ` : '';
 
@@ -1294,14 +1311,14 @@
                 <div class="avatar">${cr.requesterName[0].toUpperCase()}</div>
                 <div class="crCardTitle">
                   <h4 title="${cr.prTitle}">${clickableTitle}</h4>
-                  <div class="repoName">📁 ${cr.repoName}</div>
+                  <div class="repoName">${cr.repoName}</div>
                 </div>
                 ${statusBadge}
               </div>
 
               <div class="crMeta">
                 <div class="reviewerSummary">
-                  👤 Reviewers: <strong>${cr.assignments.length} / ${cr.requiredReviewers}</strong>
+                  Reviewers: <strong>${cr.assignments.length} / ${cr.requiredReviewers}</strong>
                 </div>
                 <span class="timeAgo">${timeAgo(cr.createdAt)}</span>
               </div>
@@ -1309,11 +1326,14 @@
               <!-- List active reviewers on the card (Ultra-Premium Badge checklist) -->
               ${cr.assignments.length > 0 ? `
                 <div class="assignmentsSection">
-                  <strong>Reviewers Board:</strong>
+                  <strong>Reviewers Board</strong>
                   <div class="reviewersList">
                     ${cr.assignments.map(a => `
                       <span class="reviewerLabel ${a.status === 'COMPLETED' ? 'reviewerCompleted' : ''}">
-                        ${a.status === 'COMPLETED' ? '✓' : '👤'} ${a.reviewerName}
+                        ${a.status === 'COMPLETED' ? `
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:2px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        ` : ''} 
+                        ${a.reviewerName}
                       </span>
                     `).join('')}
                   </div>
@@ -1385,14 +1405,18 @@
               </div>
               <div class="headerActions">
                 <button class="btn btn-primary" onclick="app.openRequestModal()">Ask for Code Review</button>
-                <button class="btn btn-secondary" onclick="app.openSettingsModal()">⚙️ Settings</button>
+                <button class="btn btn-secondary" onclick="app.openSettingsModal()">
+                  <!-- Gear SVG -->
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Settings
+                </button>
               </div>
             </div>
 
-            <!-- Tab Switcher (📋 Active Reviews vs 📜 History) -->
+            <!-- Tab Switcher (Active Reviews vs History) -->
             <div class="tabSwitch">
-              <button id="tab-active" class="tabBtn tabBtnActive" onclick="app.switchTab('active')">📋 Active Reviews</button>
-              <button id="tab-history" class="tabBtn" onclick="app.switchTab('history')">📜 History</button>
+              <button id="tab-active" class="tabBtn tabBtnActive" onclick="app.switchTab('active')">Active Reviews</button>
+              <button id="tab-history" class="tabBtn" onclick="app.switchTab('history')">History</button>
             </div>
 
             <!-- Main Reviews board -->
