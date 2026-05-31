@@ -415,13 +415,6 @@
       font-weight: 700;
     }
 
-    .filtersRow {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
     /* ==========================================================================
        7. CODE REVIEW CARDS GRID
        ========================================================================== */
@@ -789,7 +782,8 @@
           </div>
         </div>
       </div>
-      <div class="flex" style="justify-content: flex-end; margin-top: 1.5rem;">
+      <div class="flex" style="justify-content: space-between; margin-top: 2rem; align-items: center;">
+        <button class="btn btn-danger btn-sm" onclick="app.resetDatabase()">Reset App Data</button>
         <button class="btn btn-primary" onclick="app.closeSettingsModal()">Done</button>
       </div>
     </div>
@@ -849,9 +843,6 @@
     class CRMatcherOfflineApp {
       constructor() {
         this.db = null;
-        this.filterRepo = 'all';
-        this.filterStatus = 'OPEN';
-        this.sortBy = 'newest';
         this.initDatabase();
       }
 
@@ -860,8 +851,12 @@
         if (stored) {
           try {
             this.db = JSON.parse(stored);
+            // Bulletproof: Force merge default requests if missing/corrupt
+            if (!this.db.teams || this.db.teams.length === 0) this.db.teams = DEFAULT_DB.teams;
+            if (!this.db.crRequests || this.db.crRequests.length === 0) this.db.crRequests = DEFAULT_DB.crRequests;
           } catch {
             this.db = DEFAULT_DB;
+            this.saveDatabase();
           }
         } else {
           this.db = DEFAULT_DB;
@@ -871,6 +866,16 @@
 
       saveDatabase() {
         localStorage.setItem('crmatcher_pure_offline_db', JSON.stringify(this.db));
+      }
+
+      resetDatabase() {
+        if (confirm('Are you sure you want to reset all team data and active code reviews back to defaults?')) {
+          localStorage.removeItem('crmatcher_pure_offline_db');
+          this.initDatabase();
+          this.addToast('App data reset successfully!', 'success');
+          this.closeSettingsModal();
+          this.render();
+        }
       }
 
       // Toasts notifications
@@ -959,9 +964,9 @@
         this.addToast(`Team "${trimmedName}" created offline!`, 'success');
         
         // Auto-select in form
+        this.updateTeamDropdowns();
         const teamSelect = document.getElementById('login-select-team');
         if (teamSelect) {
-          this.updateTeamDropdowns();
           teamSelect.value = teamId;
         }
       }
@@ -1090,7 +1095,7 @@
         
         input.value = '';
         this.renderSettingsRepos();
-        this.render(); // update dashboard repo filters
+        this.render(); 
       }
 
       removeTrackedRepo(repoName) {
@@ -1158,37 +1163,16 @@
         this.render();
       }
 
-      // RENDER ALL AVAILABLE CR BOARD
+      // RENDER ALL AVAILABLE CR BOARD (NO FILTERS!)
       renderBoard() {
         const container = document.getElementById('board-container');
         const teamId = this.db.currentUser.teamId;
 
-        // Get repositories for this team
-        const team = this.db.teams.find(t => t.id === teamId);
-        const teamRepos = team?.repos || [];
-        const repoSelect = document.getElementById('filter-repo');
-        
-        const prevRepo = this.filterRepo;
-        repoSelect.innerHTML = '<option value="all">All Repositories</option>' + 
-          teamRepos.map(r => `<option value="${r}">${r}</option>`).join('');
-        repoSelect.value = prevRepo;
-
-        // Filter and sort reviews
+        // Get reviews for this team
         let list = this.db.crRequests.filter(cr => cr.teamId === teamId);
 
-        if (this.filterRepo !== 'all') {
-          list = list.filter(cr => cr.repoName === this.filterRepo);
-        }
-
-        if (this.filterStatus !== 'ALL') {
-          list = list.filter(cr => cr.status === this.filterStatus);
-        }
-
-        if (this.sortBy === 'newest') {
-          list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        } else if (this.sortBy === 'oldest') {
-          list = [...list].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        }
+        // Sort by date newest first
+        list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         document.getElementById('board-count-badge').innerText = list.length;
 
@@ -1197,7 +1181,7 @@
             <div class="emptyState">
               <div class="emptyStateIcon">🎉</div>
               <h3>All caught up!</h3>
-              <p>No available code reviews found matching your filters.</p>
+              <p>No available code reviews found. Click "Ask for Code Review" to create one!</p>
             </div>
           `;
           return;
@@ -1331,53 +1315,32 @@
               </div>
             </div>
 
-            <!-- Main Reviews board -->
+            <!-- Main Reviews board (NO FILTERS AT ALL!) -->
             <div class="boardHeader">
               <h3 class="boardTitle">
                 All Available Code Reviews
                 <span id="board-count-badge" class="countBadge">0</span>
               </h3>
-              <div class="filtersRow">
-                <select id="filter-status" class="select" style="width: auto; padding: 0.25rem 2.25rem 0.25rem 0.5rem;" onchange="app.handleFilterStatusChange(this.value)">
-                  <option value="OPEN">Active Reviews</option>
-                  <option value="COMPLETED">History (Completed)</option>
-                  <option value="CANCELLED">History (Cancelled)</option>
-                  <option value="ALL">All Reviews</option>
-                </select>
-
-                <select id="filter-repo" class="select" style="width: auto; padding: 0.25rem 2.25rem 0.25rem 0.5rem;" onchange="app.handleFilterRepoChange(this.value)">
-                  <option value="all">All Repositories</option>
-                </select>
-
-                <select id="sort-by" class="select" style="width: auto; padding: 0.25rem 2.25rem 0.25rem 0.5rem;" onchange="app.handleSortChange(this.value)">
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                </select>
-              </div>
             </div>
             <div id="board-container"></div>
           </div>
         `;
       }
 
-      handleFilterStatusChange(val) {
-        this.filterStatus = val;
-        this.renderBoard();
-      }
-
-      handleFilterRepoChange(val) {
-        this.filterRepo = val;
-        this.renderBoard();
-      }
-
-      handleSortChange(val) {
-        this.sortBy = val;
-        this.renderBoard();
-      }
-
       showDashboard() {
         this.render();
       }
+    }
+
+    function timeAgo(dateStr) {
+      const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
     }
 
     const app = new CRMatcherOfflineApp();
