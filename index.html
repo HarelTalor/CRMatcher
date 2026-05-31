@@ -815,11 +815,11 @@
       </div>
       <div class="formGroup">
         <label for="modal-pr-name">Pull Request Name</label>
-        <input id="modal-pr-name" class="input" type="text" placeholder="e.g. feat: integrate billing module">
+        <input id="modal-pr-name" class="input" type="text" placeholder="feat: integrate billing module">
       </div>
       <div class="formGroup">
         <label for="modal-pr-url">Pull Request Link (Optional)</label>
-        <input id="modal-pr-url" class="input" type="text" placeholder="e.g. https://github.com/my-org/my-repo/pull/12">
+        <input id="modal-pr-url" class="input" type="text" placeholder="https://github.com/my-org/my-repo/pull/12">
       </div>
       <div class="formGroup">
         <label for="modal-select-repo">Choose Repository</label>
@@ -858,7 +858,7 @@
         <div class="formGroup" style="margin-top: 0.5rem;">
           <label for="settings-new-repo">Add New Repository Name</label>
           <div class="flex gap-sm">
-            <input id="settings-new-repo" class="input" type="text" placeholder="e.g. frontend-core">
+            <input id="settings-new-repo" class="input" type="text" placeholder="frontend-core">
             <button class="btn btn-primary" onclick="app.addTrackedRepo()">Add</button>
           </div>
         </div>
@@ -879,11 +879,11 @@
       </div>
       <div class="formGroup">
         <label for="new-team-name">Team Name</label>
-        <input id="new-team-name" class="input" type="text" placeholder="e.g. Team Alpha">
+        <input id="new-team-name" class="input" type="text" placeholder="Team Alpha">
       </div>
       <div class="formGroup">
         <label for="new-team-desc">Description (Optional)</label>
-        <input id="new-team-desc" class="input" type="text" placeholder="e.g. DevOps & Infra team">
+        <input id="new-team-desc" class="input" type="text" placeholder="DevOps & Infra team">
       </div>
       
       <!-- Repository Selection inside Team Creation -->
@@ -893,16 +893,8 @@
           <span style="font-size: 0.75rem; color: var(--color-muted); width: 100%; text-align: center;">No repositories added yet</span>
         </div>
         <div class="flex gap-sm" style="margin-top: 0.5rem;">
-          <input id="new-team-new-repo" class="input" type="text" placeholder="e.g. frontend-app">
+          <input id="new-team-new-repo" class="input" type="text" placeholder="frontend-app">
           <button class="btn btn-secondary btn-sm" onclick="app.addRepoToNewTeamList()">Add</button>
-        </div>
-        
-        <!-- Suggestions row with clickable items (less bold suggestions) -->
-        <div style="margin-top: 0.35rem; font-size: 0.75rem; color: var(--color-muted);">
-          Suggestions: 
-          <span class="suggestion-tag" onclick="app.quickAddRepo('frontend-app')">frontend-app</span>
-          <span class="suggestion-tag" onclick="app.quickAddRepo('backend-api')">backend-api</span>
-          <span class="suggestion-tag" onclick="app.quickAddRepo('devops-infra')">devops-infra</span>
         </div>
       </div>
       
@@ -1119,15 +1111,6 @@
 
       removeRepoFromNewTeamList(repoName) {
         this.newTeamRepos = this.newTeamRepos.filter(r => r !== repoName);
-        this.renderNewTeamRepos();
-      }
-
-      quickAddRepo(repoName) {
-        if (this.newTeamRepos.includes(repoName)) {
-          this.addToast('Repository already added.', 'error');
-          return;
-        }
-        this.newTeamRepos.push(repoName);
         this.renderNewTeamRepos();
       }
 
@@ -1497,7 +1480,7 @@
               
               <div class="formGroup">
                 <label for="login-name">Your Name</label>
-                <input id="login-name" class="input" type="text" placeholder="e.g. Harel">
+                <input id="login-name" class="input" type="text" placeholder="Harel">
               </div>
 
               <div class="formGroup">
