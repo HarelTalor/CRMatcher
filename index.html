@@ -306,7 +306,7 @@
 
     .formGroup label {
       font-size: 0.875rem;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .input, .select {
@@ -321,8 +321,34 @@
       transition: border-color 0.2s;
     }
 
+    .input::placeholder, .select::placeholder {
+      color: var(--color-muted);
+      font-weight: 400;
+      opacity: 0.75;
+    }
+
     .input:focus, .select:focus {
       border-color: var(--color-accent);
+    }
+
+    .suggestion-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+      background-color: var(--color-border-light);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 0.35rem;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    
+    .suggestion-tag:hover {
+      background-color: var(--color-accent-soft);
+      color: var(--color-accent);
+      border-color: rgba(35, 134, 54, 0.3);
     }
 
     .divider {
@@ -788,11 +814,11 @@
         <button class="modalClose" onclick="app.closeRequestModal()">✕</button>
       </div>
       <div class="formGroup">
-        <label for="modal-pr-name">PR Title / Name</label>
+        <label for="modal-pr-name">Pull Request Name</label>
         <input id="modal-pr-name" class="input" type="text" placeholder="e.g. feat: integrate billing module">
       </div>
       <div class="formGroup">
-        <label for="modal-pr-url">PR Link (Optional)</label>
+        <label for="modal-pr-url">Pull Request Link (Optional)</label>
         <input id="modal-pr-url" class="input" type="text" placeholder="e.g. https://github.com/my-org/my-repo/pull/12">
       </div>
       <div class="formGroup">
@@ -840,6 +866,49 @@
       <div class="flex" style="justify-content: space-between; margin-top: 2rem; align-items: center;">
         <button class="btn btn-danger btn-sm" onclick="app.resetDatabase()">Reset App Data</button>
         <button class="btn btn-primary" onclick="app.closeSettingsModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE TEAM MODAL -->
+  <div id="create-team-modal" class="modalOverlay" style="display: none;">
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Create New Team</h2>
+        <button class="modalClose" onclick="app.closeCreateTeamModal()">✕</button>
+      </div>
+      <div class="formGroup">
+        <label for="new-team-name">Team Name</label>
+        <input id="new-team-name" class="input" type="text" placeholder="e.g. Team Alpha">
+      </div>
+      <div class="formGroup">
+        <label for="new-team-desc">Description (Optional)</label>
+        <input id="new-team-desc" class="input" type="text" placeholder="e.g. DevOps & Infra team">
+      </div>
+      
+      <!-- Repository Selection inside Team Creation -->
+      <div class="formGroup">
+        <label>Tracked Repositories</label>
+        <div id="new-team-repo-list" class="repoList" style="min-height: 40px; border: 1px dashed var(--color-border); border-radius: 6px; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: flex-start; max-height: 120px; overflow-y: auto;">
+          <span style="font-size: 0.75rem; color: var(--color-muted); width: 100%; text-align: center;">No repositories added yet</span>
+        </div>
+        <div class="flex gap-sm" style="margin-top: 0.5rem;">
+          <input id="new-team-new-repo" class="input" type="text" placeholder="e.g. frontend-app">
+          <button class="btn btn-secondary btn-sm" onclick="app.addRepoToNewTeamList()">Add</button>
+        </div>
+        
+        <!-- Suggestions row with clickable items (less bold suggestions) -->
+        <div style="margin-top: 0.35rem; font-size: 0.75rem; color: var(--color-muted);">
+          Suggestions: 
+          <span class="suggestion-tag" onclick="app.quickAddRepo('frontend-app')">frontend-app</span>
+          <span class="suggestion-tag" onclick="app.quickAddRepo('backend-api')">backend-api</span>
+          <span class="suggestion-tag" onclick="app.quickAddRepo('devops-infra')">devops-infra</span>
+        </div>
+      </div>
+      
+      <div class="flex" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+        <button class="btn btn-secondary" onclick="app.closeCreateTeamModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="app.submitCreateTeamOffline()">Create Team</button>
       </div>
     </div>
   </div>
@@ -900,6 +969,7 @@
       constructor() {
         this.db = null;
         this.currentTab = 'active'; // active, history
+        this.newTeamRepos = []; // Temporary repo list during team creation
         this.initDatabase();
       }
 
@@ -1017,31 +1087,93 @@
         this.render();
       }
 
-      createTeamOffline(name, description) {
-        const trimmedName = name.trim();
-        if (!trimmedName) {
-          this.addToast('Team name cannot be empty.', 'error');
+      openCreateTeamModal() {
+        const modal = document.getElementById('create-team-modal');
+        document.getElementById('new-team-name').value = '';
+        document.getElementById('new-team-desc').value = '';
+        document.getElementById('new-team-new-repo').value = '';
+        this.newTeamRepos = [];
+        this.renderNewTeamRepos();
+        modal.style.display = 'flex';
+      }
+
+      closeCreateTeamModal() {
+        document.getElementById('create-team-modal').style.display = 'none';
+      }
+
+      addRepoToNewTeamList() {
+        const input = document.getElementById('new-team-new-repo');
+        const repo = input.value.trim();
+        if (!repo) {
+          this.addToast('Repository name cannot be empty.', 'error');
+          return;
+        }
+        if (this.newTeamRepos.includes(repo)) {
+          this.addToast('Repository already added.', 'error');
+          return;
+        }
+        this.newTeamRepos.push(repo);
+        input.value = '';
+        this.renderNewTeamRepos();
+      }
+
+      removeRepoFromNewTeamList(repoName) {
+        this.newTeamRepos = this.newTeamRepos.filter(r => r !== repoName);
+        this.renderNewTeamRepos();
+      }
+
+      quickAddRepo(repoName) {
+        if (this.newTeamRepos.includes(repoName)) {
+          this.addToast('Repository already added.', 'error');
+          return;
+        }
+        this.newTeamRepos.push(repoName);
+        this.renderNewTeamRepos();
+      }
+
+      renderNewTeamRepos() {
+        const container = document.getElementById('new-team-repo-list');
+        if (this.newTeamRepos.length === 0) {
+          container.innerHTML = '<span style="font-size: 0.75rem; color: var(--color-muted); width: 100%; text-align: center;">No repositories added yet</span>';
+          return;
+        }
+        container.innerHTML = this.newTeamRepos.map(repo => `
+          <span class="reviewerLabel" style="background-color: var(--color-border-light); border-color: var(--color-border); gap: 0.25rem;">
+            ${repo}
+            <button onclick="app.removeRepoFromNewTeamList('${repo}')" style="color: var(--color-danger); font-weight: bold; margin-left: 2px;">✕</button>
+          </span>
+        `).join('');
+      }
+
+      submitCreateTeamOffline() {
+        const nameInput = document.getElementById('new-team-name');
+        const descInput = document.getElementById('new-team-desc');
+        const name = nameInput.value.trim();
+        const desc = descInput.value.trim();
+
+        if (!name) {
+          this.addToast('Team name is required.', 'error');
           return;
         }
 
         const teamId = `team-${Date.now()}`;
         const newTeam = {
           id: teamId,
-          name: trimmedName,
-          description: description,
-          repos: ['frontend', 'backend'] // default repositories
+          name: name,
+          description: desc,
+          repos: [...this.newTeamRepos]
         };
 
         this.db.teams.push(newTeam);
         this.saveDatabase();
-        this.addToast(`Team "${trimmedName}" created offline!`, 'success');
-        
-        // Auto-select in form
+        this.addToast(`Team "${name}" created offline!`, 'success');
+
         this.updateTeamDropdowns();
         const teamSelect = document.getElementById('login-select-team');
         if (teamSelect) {
           teamSelect.value = teamId;
         }
+        this.closeCreateTeamModal();
       }
 
       updateTeamDropdowns() {
@@ -1379,15 +1511,8 @@
                 Sign In
               </button>
 
-              <div class="divider"><span>or create new team</span></div>
-
-              <div class="formGroup" style="gap: 0.35rem;">
-                <label for="new-team-name">New Team Name</label>
-                <input id="new-team-name" class="input" type="text" placeholder="e.g. Team Alpha">
-                <input id="new-team-desc" class="input" type="text" placeholder="Description (optional)" style="margin-top: 0.25rem;">
-                <button class="btn btn-secondary btn-sm" onclick="app.createTeamOffline(document.getElementById('new-team-name').value, document.getElementById('new-team-desc').value)" style="margin-top: 0.5rem;">
-                  Create Team
-                </button>
+              <div style="text-align: center; margin-top: 1.25rem;">
+                <button type="button" onclick="app.openCreateTeamModal()" style="font-size: 0.875rem; text-decoration: underline; color: var(--color-accent); font-weight: 500; border: none; background: none; cursor: pointer;">Or create a new team</button>
               </div>
             </div>
           </div>
