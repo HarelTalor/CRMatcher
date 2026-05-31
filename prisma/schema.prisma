@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  githubId      Int            @unique
+  username      String         @unique
+  name          String?
+  email         String?
+  avatarUrl     String?
+  accessToken   String?
+  teamId        String?
+  team          Team?          @relation(fields: [teamId], references: [id])
+  crRequests    CRRequest[]
+  crAssignments CRAssignment[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Team {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  description  String?
+  inviteCode   String        @unique @default(cuid())
+  members      User[]
+  trackedRepos TrackedRepo[]
+  crRequests   CRRequest[]
+  createdAt    DateTime      @default(now())
+}
+
+model TrackedRepo {
+  id           String   @id @default(cuid())
+  teamId       String
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  repoFullName String
+  addedAt      DateTime @default(now())
+
+  @@unique([teamId, repoFullName])
+}
+
+model CRRequest {
+  id                String         @id @default(cuid())
+  teamId            String
+  team              Team           @relation(fields: [teamId], references: [id])
+  requesterId       String
+  requester         User           @relation(fields: [requesterId], references: [id])
+  repoFullName      String
+  prNumber          Int
+  prTitle           String
+  prUrl             String
+  additions         Int            @default(0)
+  deletions         Int            @default(0)
+  requiredReviewers Int            @default(1)
+  status            String         @default("OPEN")
+  assignments       CRAssignment[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model CRAssignment {
+  id          String    @id @default(cuid())
+  crRequestId String
+  crRequest   CRRequest @relation(fields: [crRequestId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User      @relation(fields: [reviewerId], references: [id])
+  status      String    @default("ASSIGNED")
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([crRequestId, reviewerId])
+}
