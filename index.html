@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CR Matcher — Standalone Client</title>
+  <title>CR Matcher — Live GitHub Client</title>
   <!-- Google Fonts Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -331,6 +331,39 @@
       color: var(--color-text-secondary);
       max-width: 500px;
       margin-bottom: 2rem;
+    }
+
+    /* GitHub PAT authentication form */
+    .patCard {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      text-align: left;
+    }
+
+    .patCard h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .patInstructions {
+      font-size: 0.8125rem;
+      color: var(--color-muted);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--color-border-light);
+    }
+    .patInstructions ol {
+      padding-left: 1.25rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
     }
 
     .cardGrid {
@@ -1055,8 +1088,8 @@
         </button>
         <div id="nav-user" style="display: none;">
           <div class="userProfile">
-            <span id="user-display-name">Harel</span>
-            <div id="user-avatar" class="avatar">H</div>
+            <span id="user-display-name">Guest</span>
+            <div id="user-avatar" class="avatar">G</div>
             <button class="btn btn-secondary btn-sm" onclick="app.logout()">Sign Out</button>
           </div>
         </div>
@@ -1124,8 +1157,18 @@
         <div id="settings-repo-list" class="repoList">
           <!-- Dynamic -->
         </div>
+        
+        <label style="margin-top: 0.5rem; font-size: 0.8125rem;">Select from your repositories</label>
+        <div class="flex" style="gap: 0.5rem; margin-bottom: 0.5rem;">
+          <select id="settings-user-repos-dropdown" class="select" style="flex: 1;">
+            <option value="">Loading your repositories...</option>
+          </select>
+          <button class="btn btn-secondary" onclick="app.addDropdownTrackedRepo()">Track</button>
+        </div>
+
+        <div class="divider" style="margin: 1rem 0;"><span>or manual tracking</span></div>
         <div class="flex" style="gap: 0.5rem;">
-          <input id="settings-new-repo" class="input" type="text" placeholder="e.g. facebook/react">
+          <input id="settings-new-repo" class="input" type="text" placeholder="e.g. owner/repo">
           <button class="btn btn-primary" onclick="app.addTrackedRepo()">Add</button>
         </div>
       </div>
@@ -1136,15 +1179,15 @@
   </div>
 
   <!-- ==========================================================================
-       SIMULATION LOGIC ENGINE (JAVASCRIPT)
-       ========================================================================== */ -->
+       SIMULATION & REAL GITHUB REST API LOGIC ENGINE
+       ========================================================================== -->
   <script>
-    // Initial Database Seed Data
+    // Local DB seeds
     const DEFAULT_DB = {
-      currentUser: null,
+      currentUser: null, // { id, name, username, avatarUrl, token, teamId }
       trackedRepos: ['google/antigravity', 'vercel/next.js', 'facebook/react'],
       teams: [
-        { id: 'team-omega', name: 'Team Omega', description: 'Next-gen agentic developer team.' }
+        { id: 'team-omega', name: 'Team Omega', description: 'Next-gen developer team.' }
       ],
       users: [
         { id: 'user-harel', name: 'Harel', username: 'harels', avatarUrl: '', count: 5 },
@@ -1153,7 +1196,7 @@
       ],
       crRequests: [
         {
-          id: 'cr-1',
+          id: 'cr-mock-1',
           repoFullName: 'google/antigravity',
           prNumber: 122,
           prTitle: 'feat: add premium standalone html mock client',
@@ -1162,66 +1205,17 @@
           deletions: 5,
           requiredReviewers: 2,
           status: 'OPEN',
-          requesterId: 'user-harel',
-          assignments: [
-            { reviewerId: 'user-alice', status: 'ASSIGNED' }
-          ],
-          createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
-        },
-        {
-          id: 'cr-2',
-          repoFullName: 'vercel/next.js',
-          prNumber: 984,
-          prTitle: 'fix: reduce page margin top spacing',
-          prUrl: 'https://github.com/vercel/next.js/pull/984',
-          additions: 12,
-          deletions: 15,
-          requiredReviewers: 1,
-          status: 'OPEN',
           requesterId: 'user-alice',
           assignments: [],
-          createdAt: new Date(Date.now() - 3600000 * 8).toISOString() // 8 hours ago
-        },
-        {
-          id: 'cr-3',
-          repoFullName: 'facebook/react',
-          prNumber: 459,
-          prTitle: 'docs: improve typescript definitions',
-          prUrl: 'https://github.com/facebook/react/pull/459',
-          additions: 2,
-          deletions: 1,
-          requiredReviewers: 2,
-          status: 'OPEN',
-          requesterId: 'user-bob',
-          assignments: [
-            { reviewerId: 'user-harel', status: 'ASSIGNED' },
-            { reviewerId: 'user-alice', status: 'ASSIGNED' }
-          ],
-          createdAt: new Date(Date.now() - 3600000 * 24).toISOString() // 1 day ago
+          createdAt: new Date(Date.now() - 3600000 * 2).toISOString()
         }
       ]
     };
 
-    // GitHub Mock Pull Requests Pool
-    const GITHUB_PR_POOL = {
-      'google/antigravity': [
-        { prNumber: 140, prTitle: 'perf: accelerate compiler engine by 40%', additions: 280, deletions: 12 },
-        { prNumber: 142, prTitle: 'refactor: simplify model context parser', additions: 45, deletions: 32 }
-      ],
-      'vercel/next.js': [
-        { prNumber: 1012, prTitle: 'feat: add native responsive css grids', additions: 65, deletions: 2 },
-        { prNumber: 1045, prTitle: 'bug: fix theme flicker during static builds', additions: 18, deletions: 8 }
-      ],
-      'facebook/react': [
-        { prNumber: 520, prTitle: 'feat: optimize component hydration sequences', additions: 190, deletions: 45 },
-        { prNumber: 532, prTitle: 'fix: suppress false positive server warnings', additions: 9, deletions: 1 }
-      ]
-    };
-
-    class CRMatcherApp {
+    class CRMatcherLiveApp {
       constructor() {
         this.db = null;
-        this.currentTab = 'board'; // board, leaderboard
+        this.currentTab = 'board';
         this.filterRepo = 'all';
         this.filterStatus = 'OPEN';
         this.sortBy = 'newest';
@@ -1230,7 +1224,7 @@
       }
 
       initDatabase() {
-        const stored = localStorage.getItem('crmatcher_standalone_db');
+        const stored = localStorage.getItem('crmatcher_live_db');
         if (stored) {
           try {
             this.db = JSON.parse(stored);
@@ -1244,7 +1238,26 @@
       }
 
       saveDatabase() {
-        localStorage.setItem('crmatcher_standalone_db', JSON.stringify(this.db));
+        localStorage.setItem('crmatcher_live_db', JSON.stringify(this.db));
+      }
+
+      // API Caller to GitHub
+      async githubApi(endpoint, options = {}) {
+        const token = this.db.currentUser?.token;
+        if (!token) throw new Error('No GitHub Access Token found. Please re-authenticate.');
+
+        const headers = {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        };
+
+        const res = await fetch(`https://api.github.com${endpoint}`, { ...options, headers });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ message: 'GitHub API error' }));
+          throw new Error(errData.message || `GitHub API error (${res.status})`);
+        }
+        return res.json();
       }
 
       // Toast alerts
@@ -1265,7 +1278,7 @@
           toast.style.transform = 'translateY(10px)';
           toast.style.transition = 'all 0.3s ease';
           setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        }, 4000);
       }
 
       toggleTheme() {
@@ -1274,6 +1287,71 @@
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', newTheme);
         document.getElementById('theme-toggle').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+      }
+
+      // LOGIN INTEGRATION VIA PAT
+      async loginWithPat() {
+        const patInput = document.getElementById('github-pat-input');
+        const token = patInput.value.trim();
+
+        if (!token) {
+          this.addToast('Please enter a GitHub Personal Access Token', 'error');
+          return;
+        }
+
+        this.addToast('Validating token with GitHub...', 'info');
+
+        try {
+          // Temporarily store token to query profile
+          const tempUser = { token };
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const res = await fetch('https://api.github.com/user', { headers });
+          
+          if (!res.ok) {
+            throw new Error('Invalid token. Check scopes or spelling.');
+          }
+
+          const profile = await res.json();
+
+          // Upsert in users database
+          let dbUser = this.db.users.find(u => u.username === profile.login);
+          if (!dbUser) {
+            dbUser = {
+              id: `user-${profile.login}`,
+              name: profile.name || profile.login,
+              username: profile.login,
+              avatarUrl: profile.avatar_url,
+              count: 0
+            };
+            this.db.users.push(dbUser);
+          } else {
+            dbUser.name = profile.name || profile.login;
+            dbUser.avatarUrl = profile.avatar_url;
+          }
+
+          // Complete login state
+          this.db.currentUser = {
+            id: dbUser.id,
+            name: dbUser.name,
+            username: dbUser.username,
+            avatarUrl: dbUser.avatarUrl,
+            token: token,
+            teamId: null
+          };
+
+          this.saveDatabase();
+          this.addToast(`Successfully authenticated as GitHub User ${dbUser.name}!`, 'success');
+          this.render();
+        } catch (error) {
+          this.addToast(error.message, 'error');
+        }
+      }
+
+      logout() {
+        this.db.currentUser = null;
+        this.saveDatabase();
+        this.addToast('Logged out successfully.', 'info');
+        this.render();
       }
 
       // VIEW ROUTER
@@ -1287,10 +1365,14 @@
           return;
         }
 
-        // Display user avatar
+        // Show profile
         userHeader.style.display = 'block';
         document.getElementById('user-display-name').innerText = this.db.currentUser.name;
-        document.getElementById('user-avatar').innerHTML = this.db.currentUser.name[0].toUpperCase();
+        if (this.db.currentUser.avatarUrl) {
+          document.getElementById('user-avatar').innerHTML = `<img src="${this.db.currentUser.avatarUrl}" alt="${this.db.currentUser.name}">`;
+        } else {
+          document.getElementById('user-avatar').innerHTML = this.db.currentUser.name[0].toUpperCase();
+        }
 
         const activeUser = this.db.users.find(u => u.id === this.db.currentUser.id);
         if (!activeUser || !this.db.currentUser.teamId) {
@@ -1308,35 +1390,14 @@
         }
       }
 
-      // SIMULATED USER METHODS
-      loginAs(username) {
-        let user = this.db.users.find(u => u.username === username);
-        if (!user) {
-          user = { id: `user-${username}`, name: username.charAt(0).toUpperCase() + username.slice(1), username: username, count: 0 };
-          this.db.users.push(user);
-        }
-        this.db.currentUser = { id: user.id, name: user.name, teamId: null };
-        this.saveDatabase();
-        this.addToast(`Successfully authenticated as ${user.name}!`, 'success');
-        this.render();
-      }
-
-      logout() {
-        this.db.currentUser = null;
-        this.saveDatabase();
-        this.addToast('Signed out successfully.', 'info');
-        this.render();
-      }
-
-      // SIMULATED TEAM METHODS
+      // SIMULATED TEAM ACTIONS
       createTeam(name, description) {
         if (!name.trim()) {
           this.addToast('Team name cannot be empty', 'error');
           return;
         }
         const teamId = `team-${Date.now()}`;
-        const newTeam = { id: teamId, name: name, description: description };
-        this.db.teams.push(newTeam);
+        this.db.teams.push({ id: teamId, name, description });
         
         this.db.currentUser.teamId = teamId;
         this.saveDatabase();
@@ -1346,44 +1407,133 @@
 
       joinTeam(teamId) {
         const team = this.db.teams.find(t => t.id === teamId);
-        if (!team) {
-          this.addToast('Team not found', 'error');
-          return;
-        }
+        if (!team) return;
         this.db.currentUser.teamId = teamId;
         this.saveDatabase();
         this.addToast(`Joined team ${team.name}!`, 'success');
         this.render();
       }
 
-      // INLINE STATS ROW CALCULATION
-      renderStats() {
-        const teamId = this.db.currentUser.teamId;
+      // WORKFLOW LIFECYCLE ACTIONS
+      takeCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
         const currentUserId = this.db.currentUser.id;
+        if (cr.requesterId === currentUserId) {
+          this.addToast("You can't review your own PR!", 'error');
+          return;
+        }
 
-        const openCRs = this.db.crRequests.filter(cr => cr.status === 'OPEN').length;
-        const myPending = this.db.crRequests.filter(cr => 
-          cr.status === 'OPEN' && cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED')
-        ).length;
+        if (cr.assignments.some(a => a.reviewerId === currentUserId)) {
+          this.addToast("You're already assigned.", 'error');
+          return;
+        }
 
-        // Calculate this week mock value
-        const completedThisWeek = this.db.crRequests.filter(cr => cr.status === 'COMPLETED').length;
-
-        document.getElementById('stat-open-reviews').innerText = openCRs;
-        document.getElementById('stat-my-pending').innerText = myPending;
-        document.getElementById('stat-completed-week').innerText = completedThisWeek;
-      }
-
-      // SWITCH TABS
-      switchTab(tab) {
-        this.currentTab = tab;
-        document.getElementById('tab-board').className = `tabBtn ${tab === 'board' ? 'tabBtnActive' : ''}`;
-        document.getElementById('tab-leaderboard').className = `tabBtn ${tab === 'leaderboard' ? 'tabBtnActive' : ''}`;
+        cr.assignments.push({ reviewerId: currentUserId, status: 'ASSIGNED' });
+        this.saveDatabase();
+        this.addToast("You've taken the review request!", 'success');
         this.render();
       }
 
-      // MODAL CONTROLLERS
-      openRequestModal() {
+      completeCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
+        const currentUserId = this.db.currentUser.id;
+        const assignment = cr.assignments.find(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED');
+        if (!assignment) return;
+
+        assignment.status = 'COMPLETED';
+        assignment.completedAt = new Date().toISOString();
+
+        // Increment leaderboard scores
+        const user = this.db.users.find(u => u.id === currentUserId);
+        if (user) user.count = (user.count || 0) + 1;
+
+        if (cr.assignments.filter(a => a.status === 'COMPLETED').length >= cr.requiredReviewers) {
+          cr.status = 'COMPLETED';
+        }
+
+        this.saveDatabase();
+        this.addToast("Marked review as completed! Leaderboard updated.", 'success');
+        this.render();
+      }
+
+      cancelCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
+        cr.status = 'CANCELLED';
+        this.saveDatabase();
+        this.addToast("Review request successfully cancelled.", 'info');
+        this.render();
+      }
+
+      // REAL-TIME SYNC ENGINE (CALLING LIVE GITHUB API FOR PR STATE)
+      async syncWithGitHub() {
+        const syncBtn = document.getElementById('sync-github-btn');
+        syncBtn.innerText = 'Syncing...';
+        syncBtn.disabled = true;
+        
+        this.addToast('Checking live status on GitHub via REST API...', 'info');
+
+        const openReviews = this.db.crRequests.filter(cr => cr.status === 'OPEN');
+        let updatedCount = 0;
+
+        try {
+          for (const cr of openReviews) {
+            try {
+              // Call API to fetch specific PR status: GET /repos/{owner}/{repo}/pulls/{number}
+              const pr = await this.githubApi(`/repos/${cr.repoFullName}/pulls/${cr.prNumber}`);
+
+              let newStatus = null;
+              if (pr.merged) {
+                newStatus = 'COMPLETED';
+              } else if (pr.state === 'closed') {
+                newStatus = 'CANCELLED';
+              }
+
+              if (newStatus) {
+                cr.status = newStatus;
+
+                // If completed, check off assignments
+                if (newStatus === 'COMPLETED') {
+                  cr.assignments.forEach(a => {
+                    if (a.status === 'ASSIGNED') {
+                      a.status = 'COMPLETED';
+                      a.completedAt = new Date().toISOString();
+                      
+                      const reviewer = this.db.users.find(u => u.id === a.reviewerId);
+                      if (reviewer) reviewer.count = (reviewer.count || 0) + 1;
+                    }
+                  });
+                }
+                updatedCount++;
+              }
+            } catch (prError) {
+              console.error(`Skipping sync of PR ${cr.repoFullName} #${cr.prNumber}:`, prError);
+            }
+          }
+
+          this.saveDatabase();
+          this.render();
+
+          if (updatedCount > 0) {
+            this.addToast(`Successfully synced! Merged/Closed ${updatedCount} pull requests.`, 'success');
+          } else {
+            this.addToast('All tracked reviews are up to date with GitHub!', 'success');
+          }
+        } catch (error) {
+          this.addToast(error.message, 'error');
+        } finally {
+          syncBtn.innerText = 'Sync with GitHub';
+          syncBtn.disabled = false;
+        }
+      }
+
+      // LOAD REAL PRs FOR MODAL
+      async openRequestModal() {
         const modal = document.getElementById('request-modal');
         const repoSelect = document.getElementById('modal-select-repo');
         
@@ -1399,37 +1549,65 @@
         this.selectedPr = null;
       }
 
-      handleModalRepoChange() {
+      async handleModalRepoChange() {
         const repo = document.getElementById('modal-select-repo').value;
         const prListContainer = document.getElementById('modal-pr-list');
         
-        const prs = GITHUB_PR_POOL[repo] || [];
-        
-        if (prs.length === 0) {
-          prListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--color-muted); font-size: 0.875rem;">No open PRs found in GitHub</div>';
-          return;
-        }
+        prListContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--color-muted);">Loading open PRs from GitHub...</div>';
 
-        prListContainer.innerHTML = prs.map((pr, idx) => `
-          <div class="prSelectCard" id="pr-card-${idx}" onclick="app.selectPrCard(${idx}, '${repo}')">
-            <h5>#${pr.prNumber}: ${pr.prTitle}</h5>
-            <span>+${pr.additions} / -${pr.deletions} lines changed</span>
-          </div>
-        `).join('');
+        try {
+          // Fetch open PRs: GET /repos/{owner}/{repo}/pulls?state=open
+          const pulls = await this.githubApi(`/repos/${repo}/pulls?state=open&per_page=30`);
+          
+          if (pulls.length === 0) {
+            prListContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--color-muted); font-size: 0.875rem;">No open pull requests found.</div>';
+            return;
+          }
+
+          prListContainer.innerHTML = pulls.map((pr, idx) => `
+            <div class="prSelectCard" id="pr-card-${idx}" onclick="app.selectPrCard(${idx}, ${pr.number}, '${repo}')">
+              <h5>#${pr.number}: ${pr.title}</h5>
+              <span>Created by @${pr.user.login}</span>
+            </div>
+          `).join('');
+        } catch (error) {
+          prListContainer.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--color-danger); font-size: 0.875rem;">Error: ${error.message}</div>`;
+        }
       }
 
-      selectPrCard(idx, repo) {
-        const prs = GITHUB_PR_POOL[repo] || [];
-        this.selectedPr = prs[idx];
+      async selectPrCard(idx, prNumber, repo) {
+        // Fetch detailed PR information to get additions/deletions diffs!
+        this.addToast(`Fetching line diff stats for PR #${prNumber}...`, 'info');
         
-        // Toggle active class
-        document.querySelectorAll('.prSelectCard').forEach(c => c.classList.remove('active'));
-        document.getElementById(`pr-card-${idx}`).classList.add('active');
+        try {
+          const detail = await this.githubApi(`/repos/${repo}/pulls/${prNumber}`);
+          this.selectedPr = {
+            prNumber: detail.number,
+            prTitle: detail.title,
+            prUrl: detail.html_url,
+            additions: detail.additions || 0,
+            deletions: detail.deletions || 0
+          };
+
+          document.querySelectorAll('.prSelectCard').forEach(c => c.classList.remove('active'));
+          const card = document.getElementById(`pr-card-${idx}`);
+          if (card) {
+            card.classList.add('active');
+            // Append diff stats under PR selection instantly!
+            const span = card.querySelector('span');
+            if (span) {
+              span.innerHTML = `<strong>+${detail.additions} / -${detail.deletions}</strong> lines changed • Created by @${detail.user.login}`;
+            }
+          }
+          this.addToast('Diff stats successfully fetched!', 'success');
+        } catch (err) {
+          this.addToast(`Failed to load diffs: ${err.message}`, 'error');
+        }
       }
 
       submitRequestCR() {
         if (!this.selectedPr) {
-          this.addToast('Please select a pull request first.', 'error');
+          this.addToast('Please select a pull request with verified diff stats first.', 'error');
           return;
         }
 
@@ -1441,7 +1619,7 @@
           repoFullName: repo,
           prNumber: this.selectedPr.prNumber,
           prTitle: this.selectedPr.prTitle,
-          prUrl: `https://github.com/${repo}/pull/${this.selectedPr.prNumber}`,
+          prUrl: this.selectedPr.prUrl,
           additions: this.selectedPr.additions,
           deletions: this.selectedPr.deletions,
           requiredReviewers: reviewersCount,
@@ -1452,20 +1630,17 @@
         };
 
         this.db.crRequests.unshift(newCR);
-        
-        // Remove from pool so it can't be requested again immediately
-        GITHUB_PR_POOL[repo] = GITHUB_PR_POOL[repo].filter(p => p.prNumber !== this.selectedPr.prNumber);
-
         this.saveDatabase();
-        this.addToast('Code review request created successfully!', 'success');
+        this.addToast('Live code review request successfully added to board!', 'success');
         this.closeRequestModal();
         this.render();
       }
 
-      // SETTINGS MODAL
-      openSettingsModal() {
+      // LOAD USER REPOSITORIES FOR SETTINGS
+      async openSettingsModal() {
         document.getElementById('settings-modal').style.display = 'flex';
         this.renderSettingsRepos();
+        this.loadUserReposDropdown();
       }
 
       closeSettingsModal() {
@@ -1482,7 +1657,31 @@
         `).join('');
       }
 
-      addTrackedRepo() {
+      async loadUserReposDropdown() {
+        const drop = document.getElementById('settings-user-repos-dropdown');
+        try {
+          // Fetch authenticated user repos: GET /user/repos
+          const repos = await this.githubApi('/user/repos?per_page=100&sort=updated');
+          
+          if (repos.length === 0) {
+            drop.innerHTML = '<option value="">No repositories found on GitHub</option>';
+            return;
+          }
+
+          drop.innerHTML = repos.map(r => `<option value="${r.full_name}">${r.full_name} (${r.private ? 'Private' : 'Public'})</option>`).join('');
+        } catch (err) {
+          drop.innerHTML = `<option value="">Error: ${err.message}</option>`;
+        }
+      }
+
+      async addDropdownTrackedRepo() {
+        const drop = document.getElementById('settings-user-repos-dropdown');
+        const val = drop.value;
+        if (!val) return;
+        this.addRepoToTrackedList(val);
+      }
+
+      async addTrackedRepo() {
         const input = document.getElementById('settings-new-repo');
         const val = input.value.trim();
         
@@ -1491,22 +1690,27 @@
           return;
         }
 
+        this.addToast(`Validating repo ${val} on GitHub...`, 'info');
+        
+        try {
+          // Verify repository exists
+          await this.githubApi(`/repos/${val}`);
+          this.addRepoToTrackedList(val);
+          input.value = '';
+        } catch (err) {
+          this.addToast(`Verification failed: ${err.message}`, 'error');
+        }
+      }
+
+      addRepoToTrackedList(val) {
         if (this.db.trackedRepos.includes(val)) {
-          this.addToast('Repository already tracked', 'error');
+          this.addToast('Repository is already tracked.', 'error');
           return;
         }
 
         this.db.trackedRepos.push(val);
-        
-        // Mock seed extra PRs for it
-        GITHUB_PR_POOL[val] = [
-          { prNumber: 201, prTitle: 'feat: apply design modifications', additions: 180, deletions: 20 },
-          { prNumber: 205, prTitle: 'fix: resolve layout spacing issues', additions: 45, deletions: 12 }
-        ];
-
         this.saveDatabase();
-        input.value = '';
-        this.addToast(`Now tracking ${val}`, 'success');
+        this.addToast(`Now tracking ${val}!`, 'success');
         this.renderSettingsRepos();
         this.render();
       }
@@ -1526,129 +1730,14 @@
         this.addToast('Invite code copied to clipboard!', 'success');
       }
 
-      // BOARD WORKFLOW LIFE CYCLE ACTIONS
-      takeCR(crId) {
-        const cr = this.db.crRequests.find(c => c.id === crId);
-        if (!cr) return;
-
-        const currentUserId = this.db.currentUser.id;
-        
-        if (cr.requesterId === currentUserId) {
-          this.addToast("You can't review your own PR!", 'error');
-          return;
-        }
-
-        if (cr.assignments.some(a => a.reviewerId === currentUserId)) {
-          this.addToast("You're already assigned to this review.", 'error');
-          return;
-        }
-
-        cr.assignments.push({ reviewerId: currentUserId, status: 'ASSIGNED' });
-        this.saveDatabase();
-        this.addToast("You have taken this code review! Go verify their code.", 'success');
-        this.render();
-      }
-
-      completeCR(crId) {
-        const cr = this.db.crRequests.find(c => c.id === crId);
-        if (!cr) return;
-
-        const currentUserId = this.db.currentUser.id;
-        const assignment = cr.assignments.find(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED');
-        if (!assignment) return;
-
-        assignment.status = 'COMPLETED';
-        assignment.completedAt = new Date().toISOString();
-
-        // Increment leaderboard score for the reviewer!
-        const user = this.db.users.find(u => u.id === currentUserId);
-        if (user) {
-          user.count = (user.count || 0) + 1;
-        }
-
-        // If all slots are completed, mark entire CR as completed!
-        if (cr.assignments.filter(a => a.status === 'COMPLETED').length >= cr.requiredReviewers) {
-          cr.status = 'COMPLETED';
-        }
-
-        this.saveDatabase();
-        this.addToast("Code review marked as completed! Points added.", 'success');
-        this.render();
-      }
-
-      cancelCR(crId) {
-        const cr = this.db.crRequests.find(c => c.id === crId);
-        if (!cr) return;
-
-        cr.status = 'CANCELLED';
-        this.saveDatabase();
-        this.addToast("Review request successfully cancelled.", 'info');
-        this.render();
-      }
-
-      // SIMULATED GITHUB API STATUS SYNCER
-      async syncWithGitHub() {
-        const syncBtn = document.getElementById('sync-github-btn');
-        syncBtn.innerText = 'Syncing...';
-        syncBtn.disabled = true;
-        
-        this.addToast('Contacting simulated GitHub API via Octokit...', 'info');
-
-        // Let's run a 1.2 second loading state simulation
-        await new Promise(resolve => setTimeout(resolve, 1200));
-
-        // Sync logic: Find active open reviews and randomly resolve them (simulates someone merging PRs on GitHub)
-        const openReviews = this.db.crRequests.filter(cr => cr.status === 'OPEN');
-        let updatedCount = 0;
-
-        if (openReviews.length > 0) {
-          // Select 1 or 2 reviews to complete/merge
-          const countToResolve = Math.min(openReviews.length, Math.floor(Math.random() * 2) + 1);
-          
-          for (let i = 0; i < countToResolve; i++) {
-            const cr = openReviews[Math.floor(Math.random() * openReviews.length)];
-            
-            // Randomly merge (COMPLETED) or close (CANCELLED)
-            const outcome = Math.random() > 0.3 ? 'COMPLETED' : 'CANCELLED';
-            cr.status = outcome;
-
-            if (outcome === 'COMPLETED') {
-              // Ensure assigned reviewers receive their scores!
-              cr.assignments.forEach(a => {
-                if (a.status === 'ASSIGNED') {
-                  a.status = 'COMPLETED';
-                  a.completedAt = new Date().toISOString();
-                  const reviewer = this.db.users.find(u => u.id === a.reviewerId);
-                  if (reviewer) reviewer.count = (reviewer.count || 0) + 1;
-                }
-              });
-            }
-            updatedCount++;
-          }
-        }
-
-        this.saveDatabase();
-        syncBtn.innerText = 'Sync with GitHub';
-        syncBtn.disabled = false;
-
-        if (updatedCount > 0) {
-          this.addToast(`Successfully synced PR statuses! Merged/Closed ${updatedCount} PRs in GitHub.`, 'success');
-        } else {
-          this.addToast('All PRs are currently up to date on GitHub.', 'success');
-        }
-        
-        this.render();
-      }
-
-      // RENDER REVIEW BOARD VIEW
+      // RENDER REVIEW BOARD
       renderBoard() {
         const container = document.getElementById('board-container');
         
-        // Filter unique repos
+        // Populate repository filters
         const repos = [...new Set(this.db.crRequests.map(c => c.repoFullName).filter(Boolean))];
         const repoSelect = document.getElementById('filter-repo');
         
-        // Save current choice
         const prevRepo = this.filterRepo;
         repoSelect.innerHTML = '<option value="all">All Repos</option>' + 
           repos.map(r => `<option value="${r}">${r}</option>`).join('');
@@ -1681,7 +1770,7 @@
             <div class="emptyState">
               <div class="emptyStateIcon">🎉</div>
               <h3>No reviews found</h3>
-              <p>Try changing your filters or ask for a new code review request!</p>
+              <p>Try changing your status filters or request a new code review request!</p>
             </div>
           `;
           return;
@@ -1690,10 +1779,9 @@
         const currentUserId = this.db.currentUser.id;
 
         container.innerHTML = `<div class="crGrid">${list.map(cr => {
-          const requester = this.db.users.find(u => u.id === cr.requesterId) || { name: 'Unknown' };
+          const requester = this.db.users.find(u => u.id === cr.requesterId) || { name: cr.requesterId.replace('user-', '') };
           const isRequester = cr.requesterId === currentUserId;
           const isAssigned = cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED');
-          const isAssignedCompleted = cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'COMPLETED');
           
           let actionBtn = '';
           if (cr.status === 'OPEN') {
@@ -1712,10 +1800,12 @@
             </span>
           ` : '';
 
+          const displayAvatar = requester.avatarUrl ? `<img src="${requester.avatarUrl}" alt="${requester.name}">` : requester.name[0].toUpperCase();
+
           return `
             <article class="crCard">
               <div class="crCardHeader">
-                <div class="avatar">${requester.name[0].toUpperCase()}</div>
+                <div class="avatar">${displayAvatar}</div>
                 <div class="crCardTitle">
                   <h4 title="${cr.prTitle}">
                     <a href="${cr.prUrl}" target="_blank" rel="noopener noreferrer">${cr.prTitle}</a>
@@ -1749,28 +1839,24 @@
         }).join('')}</div>`;
       }
 
-      // RENDER PREMIUM METALLIC LEADERBOARD VIEW
+      // RENDER LEADERBOARD
       renderLeaderboard() {
         const container = document.getElementById('leaderboard-container');
-        
-        // Sort users by count
         const sorted = [...this.db.users].sort((a, b) => b.count - a.count);
 
         if (sorted.length === 0) {
-          container.innerHTML = '<div class="emptyState"><p>No user scores registered yet.</p></div>';
+          container.innerHTML = '<div class="emptyState"><p>No score data registered yet.</p></div>';
           return;
         }
 
         const top3 = sorted.slice(0, 3);
         const rest = sorted.slice(3);
 
-        // Podium re-order: 2nd (Silver), 1st (Gold), 3rd (Bronze)
         const podiumOrder = [];
         if (top3[1]) podiumOrder.push({ user: top3[1], type: 'silver', rank: '2' });
         if (top3[0]) podiumOrder.push({ user: top3[0], type: 'gold', rank: '1' });
         if (top3[2]) podiumOrder.push({ user: top3[2], type: 'bronze', rank: '3' });
 
-        // If less than 2, just show what we have in original order
         const finalPodium = podiumOrder.length >= 2 ? podiumOrder : top3.map((u, i) => ({
           user: u,
           type: i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze',
@@ -1779,11 +1865,12 @@
 
         let podiumHTML = `<div class="podium">`;
         finalPodium.forEach(slot => {
+          const displayAvatar = slot.user.avatarUrl ? `<img src="${slot.user.avatarUrl}" alt="${slot.user.name}">` : slot.user.name[0].toUpperCase();
           podiumHTML += `
             <div class="podiumSlot ${slot.type}">
               <div class="podiumAvatar">
                 <div class="podiumAvatarFallback" style="width: 100%; height: 100%;">
-                  ${slot.user.name[0].toUpperCase()}
+                  ${displayAvatar}
                 </div>
                 <span class="podiumRank">${slot.rank}</span>
               </div>
@@ -1807,20 +1894,21 @@
                 </tr>
               </thead>
               <tbody>
-                ${rest.map((user, idx) => `
-                  <tr>
-                    <td class="rankCell">#${idx + 4}</td>
-                    <td>
-                      <div class="flex align-center" style="gap: 0.5rem;">
-                        <div class="avatar" style="width: 1.5rem; height: 1.5rem; font-size: 0.75rem;">
-                          ${user.name[0].toUpperCase()}
+                ${rest.map((user, idx) => {
+                  const displayAvatar = user.avatarUrl ? `<img src="${user.avatarUrl}" class="avatar avatar-sm" alt="">` : `<div class="avatar" style="width: 1.5rem; height: 1.5rem; font-size: 0.75rem;">${user.name[0].toUpperCase()}</div>`;
+                  return `
+                    <tr>
+                      <td class="rankCell">#${idx + 4}</td>
+                      <td>
+                        <div class="flex align-center" style="gap: 0.5rem;">
+                          ${displayAvatar}
+                          <strong>${user.name}</strong>
                         </div>
-                        <strong>${user.name}</strong>
-                      </div>
-                    </td>
-                    <td class="countCell">${user.count}</td>
-                  </tr>
-                `).join('')}
+                      </td>
+                      <td class="countCell">${user.count}</td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody>
             </table>
           `;
@@ -1829,27 +1917,76 @@
         container.innerHTML = podiumHTML + tableHTML;
       }
 
-      // VIEWS INJECTORS
+      renderStats() {
+        const currentUserId = this.db.currentUser.id;
+        const openCRs = this.db.crRequests.filter(cr => cr.status === 'OPEN').length;
+        const myPending = this.db.crRequests.filter(cr => 
+          cr.status === 'OPEN' && cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED')
+        ).length;
+        const completedThisWeek = this.db.crRequests.filter(cr => cr.status === 'COMPLETED').length;
+
+        document.getElementById('stat-open-reviews').innerText = openCRs;
+        document.getElementById('stat-my-pending').innerText = myPending;
+        document.getElementById('stat-completed-week').innerText = completedThisWeek;
+      }
+
+      switchTab(tab) {
+        this.currentTab = tab;
+        document.getElementById('tab-board').className = `tabBtn ${tab === 'board' ? 'tabBtnActive' : ''}`;
+        document.getElementById('tab-leaderboard').className = `tabBtn ${tab === 'leaderboard' ? 'tabBtnActive' : ''}`;
+        this.render();
+      }
+
+      showDashboard() {
+        this.currentTab = 'board';
+        this.render();
+      }
+
+      // VIEW BLOCKS
       getLandingViewHTML() {
         return `
           <div class="landingView">
             <h1 class="heroTitle">CR Matcher</h1>
-            <p class="heroSubtitle">Streamline code reviews, match automatically with your teammates, and gamify code quality.</p>
-            <button class="btn btn-primary" onclick="app.loginAs('harel')" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
-              Sign In with GitHub
-            </button>
+            <p class="heroSubtitle">Link your code reviews directly to live GitHub pull requests. Standalone client, zero backend required.</p>
+            
+            <div class="patCard">
+              <h3>GitHub Account Authentication</h3>
+              <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: 1.25rem;">
+                Enter a GitHub Personal Access Token (PAT) to securely read your repositories and pull requests.
+              </p>
+              
+              <div class="formGroup">
+                <label for="github-pat-input">GitHub Access Token (PAT)</label>
+                <input id="github-pat-input" class="input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+              </div>
+              
+              <button class="btn btn-primary" onclick="app.loginWithPat()" style="width: 100%; margin-top: 0.5rem; padding: 0.625rem;">
+                Sign In with GitHub
+              </button>
+
+              <div class="patInstructions">
+                <strong>How to get a token:</strong>
+                <ol>
+                  <li>Go to <strong>GitHub Settings</strong> > <strong>Developer Settings</strong>.</li>
+                  <li>Select <strong>Personal Access Tokens</strong> > <strong>Tokens (classic)</strong>.</li>
+                  <li>Click <strong>Generate new token</strong> (check the <strong><code>repo</code></strong> permission scope).</li>
+                  <li>Copy and paste your generated token here. It is stored 100% locally on your computer.</li>
+                </ol>
+              </div>
+            </div>
+
             <div class="cardGrid">
               <div class="featureCard">
-                <h3>👥 Team Hub</h3>
-                <p>Track team members, invitations, and active review board assignments.</p>
+                <h3>👥 GitHub Connected</h3>
+                <p>Authenticates directly with GitHub API from the client. No database setups required.</p>
               </div>
               <div class="featureCard">
-                <h3>🚀 Octokit Integration</h3>
-                <p>Sync code review requests and pull request status automatically.</p>
+                <h3>🔄 Live Syncing</h3>
+                <p>Track live pull requests and automatically sync review metrics when they are merged on GitHub.</p>
               </div>
               <div class="featureCard">
-                <h3>🏆 Metal Rankings</h3>
-                <p>Level up code quality metrics and claim gold ranking headers.</p>
+                <h3>🏆 Metal Podium Cards</h3>
+                <p>Level up code quality metrics and claim gold-accented rank headers inside your team.</p>
               </div>
             </div>
           </div>
@@ -1861,7 +1998,7 @@
         return `
           <div class="teamView">
             <h2 class="viewTitle">Select or Create a Team</h2>
-            <p class="text-secondary" style="margin-bottom: 1.5rem;">You need to join a team in order to review pull requests.</p>
+            <p class="text-secondary" style="margin-bottom: 1.5rem;">Join a team to participate in code reviews.</p>
             
             ${teams.length > 0 ? `
               <div class="formGroup">
@@ -1878,7 +2015,7 @@
 
             <div class="formGroup">
               <label for="create-team-name">Create a New Team</label>
-              <input id="create-team-name" class="input" type="text" placeholder="e.g. Team Alpha" style="margin-bottom: 0.75rem;">
+              <input id="create-team-name" class="input" type="text" placeholder="e.g. Core Team" style="margin-bottom: 0.75rem;">
               <input id="create-team-desc" class="input" type="text" placeholder="Description (optional)" style="margin-bottom: 0.75rem;">
               <button class="btn btn-primary" onclick="app.createTeam(document.getElementById('create-team-name').value, document.getElementById('create-team-desc').value)">
                 Create Team
@@ -1892,7 +2029,6 @@
         const team = this.db.teams.find(t => t.id === this.db.currentUser.teamId) || { name: 'Your Team' };
         return `
           <div class="dashboardView">
-            <!-- Header layout -->
             <div class="teamHeader">
               <div class="teamInfo">
                 <h1>${team.name}</h1>
@@ -1904,7 +2040,7 @@
               </div>
             </div>
 
-            <!-- Stats row inline tags -->
+            <!-- Stats tags compact row -->
             <div class="statsRow">
               <div class="statTag">
                 <span id="stat-open-reviews" class="statTagValue">0</span>
@@ -1926,7 +2062,7 @@
               <button id="tab-leaderboard" class="tabBtn" onclick="app.switchTab('leaderboard')">🏆 Leaderboard</button>
             </div>
 
-            <!-- Content viewport slots -->
+            <!-- View content -->
             <div id="tab-content">
               ${this.currentTab === 'board' ? `
                 <div class="boardHeader">
@@ -1948,7 +2084,6 @@
 
                     <select id="filter-repo" class="select" style="width: auto; padding: 0.25rem 2rem 0.25rem 0.5rem;" onchange="app.handleFilterRepoChange(this.value)">
                       <option value="all">All Repos</option>
-                      <!-- Dynamic -->
                     </select>
 
                     <select id="sort-by" class="select" style="width: auto; padding: 0.25rem 2rem 0.25rem 0.5rem;" onchange="app.handleSortChange(this.value)">
@@ -1983,8 +2118,18 @@
       }
     }
 
-    // Instantiation
-    const app = new CRMatcherApp();
+    function timeAgo(dateStr) {
+      const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    }
+
+    const app = new CRMatcherLiveApp();
     window.addEventListener('DOMContentLoaded', () => app.render());
   </script>
 </body>
