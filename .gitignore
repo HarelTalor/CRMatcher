@@ -45,3 +45,5 @@ next-env.d.ts
 # SQLite databases
 *.db
 *.db-journal
+
+# how yeah 
