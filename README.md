@@ -1,36 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CR Matcher — Standalone Application
 
-## Getting Started
+This is a fully self-contained, high-fidelity standalone client of **CR Matcher** that runs completely offline in any web browser.
 
-First, run the development server:
+## 🚀 How to Run
+Simply **double-click the `index.html` file** in this folder to open it in Chrome, Edge, Safari, or Firefox!
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-ewqeq
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🌟 Interactive Features
+- **Official GitHub Theme Palettes:** Instantly switchable Light & Dark modes via the navigation theme switch (🌙 / ☀️).
+- **Persistent Local Database:** All actions (joining/creating teams, tracking repositories, requesting reviews, taking reviews, completing code reviews, and updating scoreboards) automatically persist across page reloads using the browser's `localStorage`.
+- **Pre-populated Mock Seed:** Default active pull requests and review assignments are loaded instantly so you can test all workflows immediately.
+- **Simulated GitHub API Syncing:** Click the **"Sync with GitHub"** button on the board to run a realistic syncing loading animation that automatically completes/cancels active PRs and scales the developer leaderboard.
+- **Premium Metallic podium rankings:** Dynamic Gold, Silver, and Bronze slots that update and animate in real-time as users earn review points!

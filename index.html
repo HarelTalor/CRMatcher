@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CR Matcher — Standalone Client</title>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & COLOR THEME VARIABLES
+       ========================================================================== */
+    :root {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme='light'] {
+      --color-bg: #f6f8fa;
+      --color-surface: #ffffff;
+      --color-surface-elevated: #ffffff;
+      --color-text: #24292f;
+      --color-text-secondary: #57606a;
+      --color-accent: #0969da;
+      --color-accent-hover: #0c57d0;
+      --color-accent-soft: rgba(9, 105, 218, 0.08);
+      --color-border: #d0d7de;
+      --color-border-light: #ebf0f4;
+      --color-muted: #57606a;
+      --color-success: #1a7f37;
+      --color-success-soft: rgba(26, 127, 55, 0.08);
+      --color-danger: #cf222e;
+      --color-danger-soft: rgba(207, 34, 46, 0.08);
+      --color-warning: #9a6700;
+      --color-warning-soft: rgba(154, 103, 0, 0.08);
+      --color-addition: #2da44e;
+      --color-deletion: #cf222e;
+      --color-gold: #b08d00;
+      --color-silver: #57606a;
+      --color-bronze: #9a6700;
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(208, 215, 222, 0.5);
+      --glass-shadow: 0 4px 20px rgba(140, 149, 159, 0.1);
+      --shadow-sm: 0 1px 2px rgba(27, 31, 36, 0.04);
+      --shadow-md: 0 3px 6px rgba(140, 149, 159, 0.12);
+      --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.15);
+      --shadow-xl: 0 12px 32px rgba(140, 149, 159, 0.2);
+      --gradient-accent: linear-gradient(135deg, #0969da, #2f81f7);
+      --gradient-hero: linear-gradient(135deg, #0969da 0%, #2f81f7 50%, #1a7f37 100%);
+    }
+
+    [data-theme='dark'] {
+      --color-bg: #0d1117;
+      --color-surface: #161b22;
+      --color-surface-elevated: #21262d;
+      --color-text: #c9d1d9;
+      --color-text-secondary: #8b949e;
+      --color-accent: #2f81f7;
+      --color-accent-hover: #58a6ff;
+      --color-accent-soft: rgba(47, 129, 247, 0.12);
+      --color-border: #30363d;
+      --color-border-light: #21262d;
+      --color-muted: #8b949e;
+      --color-success: #238636;
+      --color-success-soft: rgba(35, 134, 54, 0.12);
+      --color-danger: #da3633;
+      --color-danger-soft: rgba(218, 54, 51, 0.12);
+      --color-warning: #d29922;
+      --color-warning-soft: rgba(210, 153, 34, 0.12);
+      --color-addition: #3fb950;
+      --color-deletion: #f85149;
+      --color-gold: #f0e68c;
+      --color-silver: #8b949e;
+      --color-bronze: #d29922;
+      --glass-bg: rgba(22, 27, 34, 0.85);
+      --glass-border: rgba(48, 54, 61, 0.6);
+      --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-xl: 0 16px 36px rgba(0, 0, 0, 0.5);
+      --gradient-accent: linear-gradient(135deg, #2f81f7, #58a6ff);
+      --gradient-hero: linear-gradient(135deg, #2f81f7 0%, #58a6ff 50%, #238636 100%);
+    }
+
+    /* ==========================================================================
+       2. RESET & BASE LAYOUT
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.5;
+      font-size: 0.9375rem;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+    }
+
+    /* Layout Utility classes */
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .flex { display: flex; }
+    .align-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .text-muted { color: var(--color-muted); }
+    .text-secondary { color: var(--color-text-secondary); }
+
+    /* ==========================================================================
+       3. BUTTONS, INLINE TAGS, BADGES
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--color-accent);
+      color: #ffffff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--color-accent-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      border-color: var(--color-border);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--color-text-secondary);
+      background-color: var(--color-border-light);
+    }
+
+    .btn-danger {
+      background-color: var(--color-danger-soft);
+      color: var(--color-danger);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background-color: var(--color-danger);
+      color: #ffffff;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8125rem;
+      border-radius: 4px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 100px;
+    }
+    .badge-completed {
+      background-color: var(--color-success-soft);
+      color: var(--color-success);
+    }
+    .badge-cancelled {
+      background-color: var(--color-danger-soft);
+      color: var(--color-danger);
+    }
+
+    /* Stats tag styles (New Compact Tag Layout) */
+    .statTag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .statTag:hover {
+      border-color: var(--color-muted);
+    }
+    .statTagValue {
+      font-weight: 600;
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+    }
+    .statTagLabel {
+      color: var(--color-text-secondary);
+    }
+
+    /* ==========================================================================
+       4. NAVBAR COMPONENTS
+       ========================================================================== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--color-border);
+      height: 3.75rem;
+    }
+
+    .navBrand {
+      font-size: 1.125rem;
+      font-weight: 800;
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .navActions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .themeToggle {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+      transition: all 0.2s;
+    }
+    .themeToggle:hover {
+      color: var(--color-text);
+      background-color: var(--color-border-light);
+    }
+
+    .userProfile {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .avatar {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--gradient-accent);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.875rem;
+      overflow: hidden;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ==========================================================================
+       5. VIEW: LANDING PAGE
+       ========================================================================== */
+    .landingView {
+      min-height: calc(100vh - 3.75rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 1.5rem;
+    }
+    
+    .heroTitle {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: var(--gradient-hero);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .heroSubtitle {
+      font-size: 1.125rem;
+      color: var(--color-text-secondary);
+      max-width: 500px;
+      margin-bottom: 2rem;
+    }
+
+    .cardGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 900px;
+      width: 100%;
+      margin-top: 3rem;
+    }
+
+    .featureCard {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+    .featureCard:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .featureCard h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .featureCard p {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    /* ==========================================================================
+       6. VIEW: TEAM SELECTION / CREATION
+       ========================================================================== */
+    .teamView {
+      max-width: 600px;
+      margin: 4rem auto;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .viewTitle {
+      font-size: 1.375rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .formGroup {
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .formGroup label {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .input, .select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus, .select:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-soft);
+    }
+
+    .divider {
+      text-align: center;
+      margin: 2rem 0;
+      position: relative;
+    }
+    .divider::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 100%;
+      height: 1px;
+      background-color: var(--color-border);
+      z-index: 1;
+    }
+    .divider span {
+      background-color: var(--color-surface);
+      padding: 0 1rem;
+      position: relative;
+      z-index: 2;
+      color: var(--color-muted);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* ==========================================================================
+       7. VIEW: MAIN DASHBOARD & COMPACT CONTROLS
+       ========================================================================== */
+    .dashboardView {
+      padding: 1.5rem 0;
+    }
+
+    .teamHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      gap: 1.5rem;
+    }
+
+    .teamInfo h1 {
+      font-size: 1.625rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .headerActions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .statsRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Custom Switchable Tabs (Review Board vs Leaderboard) */
+    .tabSwitch {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.5rem;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 0.25rem;
+      width: fit-content;
+    }
+
+    .tabBtn {
+      padding: 0.375rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      color: var(--color-text-secondary);
+      transition: all 0.2s;
+    }
+
+    .tabBtn:hover {
+      color: var(--color-text);
+    }
+
+    .tabBtnActive {
+      background-color: var(--color-accent-soft);
+      color: var(--color-accent);
+    }
+
+    /* Controls filter Row inside Board */
+    .boardHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    
+    .boardTitle {
+      font-size: 1.125rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .countBadge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.5rem;
+      height: 1.5rem;
+      padding: 0 0.375rem;
+      border-radius: 100px;
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .filtersRow {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================================================
+       8. CARDS GRID & CARDS STYLING
+       ========================================================================== */
+    .crGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+
+    .crCard {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .crCard:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-text-secondary);
+    }
+
+    .crCardHeader {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .crCardTitle {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .crCardTitle h4 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .repoName {
+      font-size: 0.8125rem;
+      color: var(--color-muted);
+      margin-top: 0.125rem;
+    }
+
+    .crMeta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      font-size: 0.8125rem;
+    }
+
+    .diffStats {
+      font-weight: 700;
+    }
+
+    .additions { color: var(--color-addition); }
+    .deletions { color: var(--color-deletion); }
+
+    .timeAgo {
+      margin-left: auto;
+      color: var(--color-muted);
+    }
+
+    .crCardFooter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--color-border-light);
+      font-size: 0.8125rem;
+    }
+
+    .requesterInfo {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      color: var(--color-text-secondary);
+    }
+    .requesterInfo strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+
+    .cardActions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    /* Empty state */
+    .emptyState {
+      text-align: center;
+      padding: 4rem 2rem;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+    }
+    .emptyStateIcon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .emptyState h3 {
+      font-size: 1.125rem;
+      margin-bottom: 0.25rem;
+    }
+    .emptyState p {
+      font-size: 0.875rem;
+      color: var(--color-muted);
+    }
+
+    /* ==========================================================================
+       9. PREMIUM METALLIC PODIUM CARDS (LEADERBOARD)
+       ========================================================================== */
+    .podium {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      padding: 1rem 0;
+    }
+
+    .podiumSlot {
+      flex: 1;
+      max-width: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 1.5rem 1rem;
+      border-radius: 12px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .podiumSlot:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Metal color treatments with scale overlays */
+    .gold {
+      border-color: rgba(212, 175, 55, 0.35);
+      background: linear-gradient(180deg, var(--color-surface) 0%, rgba(212, 175, 55, 0.05) 100%);
+      z-index: 2;
+      transform: scale(1.05);
+    }
+    .gold:hover {
+      border-color: rgba(212, 175, 55, 0.8);
+      transform: scale(1.05) translateY(-6px);
+    }
+
+    .silver {
+      border-color: rgba(192, 192, 192, 0.3);
+      background: linear-gradient(180deg, var(--color-surface) 0%, rgba(192, 192, 192, 0.04) 100%);
+    }
+    .silver:hover {
+      border-color: rgba(192, 192, 192, 0.8);
+    }
+
+    .bronze {
+      border-color: rgba(205, 127, 50, 0.3);
+      background: linear-gradient(180deg, var(--color-surface) 0%, rgba(205, 127, 50, 0.04) 100%);
+    }
+    .bronze:hover {
+      border-color: rgba(205, 127, 50, 0.8);
+    }
+
+    .podiumAvatar {
+      position: relative;
+    }
+    .podiumAvatar img,
+    .podiumAvatarFallback {
+      border-width: 3px;
+      border-style: solid;
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .gold .podiumAvatar img,
+    .gold .podiumAvatarFallback {
+      border-color: #d4af37;
+      width: 4.5rem;
+      height: 4.5rem;
+    }
+    .silver .podiumAvatar img,
+    .silver .podiumAvatarFallback {
+      border-color: #c0c0c0;
+      width: 3.75rem;
+      height: 3.75rem;
+    }
+    .bronze .podiumAvatar img,
+    .bronze .podiumAvatarFallback {
+      border-color: #cd7f32;
+      width: 3.75rem;
+      height: 3.75rem;
+    }
+
+    .podiumRank {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      width: 1.375rem;
+      height: 1.375rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #ffffff;
+      box-shadow: var(--shadow-sm);
+      border: 2px solid var(--color-surface);
+    }
+
+    .gold .podiumRank { background: linear-gradient(135deg, #ffd700, #daa520); }
+    .silver .podiumRank { background: linear-gradient(135deg, #e6e6e6, #a9a9a9); }
+    .bronze .podiumRank { background: linear-gradient(135deg, #f4a460, #cd7f32); }
+
+    .podiumAvatarFallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--gradient-accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .podiumName {
+      font-size: 0.875rem;
+      font-weight: 600;
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .podiumCount {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+    .podiumLabel {
+      font-size: 0.6875rem;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Leaderboard list table */
+    .leaderboardTable {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .leaderboardTable th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .leaderboardTable td {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .leaderboardTable tr:last-child td {
+      border-bottom: none;
+    }
+
+    .leaderboardTable tr {
+      transition: background-color 0.2s;
+    }
+
+    .leaderboardTable tr:hover {
+      background-color: var(--color-accent-soft);
+    }
+
+    .rankCell {
+      font-weight: 700;
+      color: var(--color-muted);
+      width: 4rem;
+    }
+    
+    .countCell {
+      font-weight: 700;
+      color: var(--color-accent);
+      text-align: right;
+    }
+
+    /* ==========================================================================
+       10. MODAL POPUPS
+       ========================================================================== */
+    .modalOverlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow-xl);
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modalHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .modalHeader h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    
+    .modalClose {
+      color: var(--color-muted);
+      font-size: 1.25rem;
+      transition: color 0.2s;
+    }
+    .modalClose:hover {
+      color: var(--color-text);
+    }
+
+    /* Simulated PR Cards inside modal */
+    .prCardList {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .prSelectCard {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--color-border-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: background-color 0.2s;
+    }
+    .prSelectCard:hover {
+      background-color: var(--color-accent-soft);
+    }
+    .prSelectCard.active {
+      background-color: var(--color-accent-soft);
+      border-left: 3px solid var(--color-accent);
+    }
+    .prSelectCard:last-child {
+      border-bottom: none;
+    }
+    .prSelectCard h5 {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .prSelectCard span {
+      font-size: 0.75rem;
+      color: var(--color-muted);
+    }
+
+    /* Tracked Repos List inside settings modal */
+    .repoList {
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .repoListItem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    /* ==========================================================================
+       11. TOAST ALERTS & ANIMATIONS
+       ========================================================================== */
+    .toastContainer {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background-color: var(--color-surface);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+      border-left: 4px solid var(--color-accent);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 250px;
+      max-width: 350px;
+    }
+
+    .toast-success { border-left-color: var(--color-success); }
+    .toast-error { border-left-color: var(--color-danger); }
+    .toast-info { border-left-color: var(--color-warning); }
+
+    /* Keyframes */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive adjustments */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @media (max-width: 768px) {
+      .cardGrid {
+        grid-template-columns: 1fr;
+      }
+      .podium {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .podiumSlot {
+        max-width: none;
+      }
+      .teamHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toastContainer"></div>
+
+  <!-- NAVIGATION BAR -->
+  <nav class="navbar">
+    <div class="container flex align-center justify-between" style="height: 100%;">
+      <a href="#" class="navBrand" onclick="app.showDashboard()">
+        🔍 CR Matcher
+      </a>
+      
+      <div class="navActions">
+        <button id="theme-toggle" class="themeToggle" onclick="app.toggleTheme()" title="Toggle Theme">
+          🌙
+        </button>
+        <div id="nav-user" style="display: none;">
+          <div class="userProfile">
+            <span id="user-display-name">Harel</span>
+            <div id="user-avatar" class="avatar">H</div>
+            <button class="btn btn-secondary btn-sm" onclick="app.logout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- APP CONTENT ATTACHMENT -->
+  <main id="app-viewport" class="container" style="padding-top: 1.5rem;"></main>
+
+  <!-- ==========================================================================
+       MODALS WRAPPERS
+       ========================================================================== -->
+  
+  <!-- REQUEST CR MODAL -->
+  <div id="request-modal" class="modalOverlay" style="display: none;">
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Ask for Code Review</h2>
+        <button class="modalClose" onclick="app.closeRequestModal()">✕</button>
+      </div>
+      <div class="formGroup">
+        <label for="modal-select-repo">Select Tracked Repository</label>
+        <select id="modal-select-repo" class="select" onchange="app.handleModalRepoChange()">
+          <!-- Dynamic -->
+        </select>
+      </div>
+      <div class="formGroup">
+        <label>Select Open Pull Request</label>
+        <div id="modal-pr-list" class="prCardList">
+          <!-- Dynamic -->
+        </div>
+      </div>
+      <div class="formGroup">
+        <label for="modal-reviewers">Required Reviewers</label>
+        <select id="modal-reviewers" class="select">
+          <option value="1">1 Reviewer</option>
+          <option value="2" selected>2 Reviewers</option>
+          <option value="3">3 Reviewers</option>
+        </select>
+      </div>
+      <div class="flex" style="justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+        <button class="btn btn-secondary" onclick="app.closeRequestModal()">Cancel</button>
+        <button id="modal-submit-request" class="btn btn-primary" onclick="app.submitRequestCR()">Submit Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM SETTINGS MODAL -->
+  <div id="settings-modal" class="modalOverlay" style="display: none;">
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Team Settings</h2>
+        <button class="modalClose" onclick="app.closeSettingsModal()">✕</button>
+      </div>
+      <div class="formGroup">
+        <label>Invite Code</label>
+        <div class="flex align-center gap" style="gap: 0.5rem;">
+          <input id="settings-invite-code" class="input" type="text" readonly value="cld-4928-invite">
+          <button class="btn btn-secondary" onclick="app.copyInviteCode()">Copy</button>
+        </div>
+      </div>
+      <div class="formGroup" style="margin-top: 1.5rem;">
+        <label>Tracked Repositories</label>
+        <div id="settings-repo-list" class="repoList">
+          <!-- Dynamic -->
+        </div>
+        <div class="flex" style="gap: 0.5rem;">
+          <input id="settings-new-repo" class="input" type="text" placeholder="e.g. facebook/react">
+          <button class="btn btn-primary" onclick="app.addTrackedRepo()">Add</button>
+        </div>
+      </div>
+      <div class="flex" style="justify-content: flex-end; margin-top: 2rem;">
+        <button class="btn btn-primary" onclick="app.closeSettingsModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SIMULATION LOGIC ENGINE (JAVASCRIPT)
+       ========================================================================== */ -->
+  <script>
+    // Initial Database Seed Data
+    const DEFAULT_DB = {
+      currentUser: null,
+      trackedRepos: ['google/antigravity', 'vercel/next.js', 'facebook/react'],
+      teams: [
+        { id: 'team-omega', name: 'Team Omega', description: 'Next-gen agentic developer team.' }
+      ],
+      users: [
+        { id: 'user-harel', name: 'Harel', username: 'harels', avatarUrl: '', count: 5 },
+        { id: 'user-alice', name: 'Alice Smith', username: 'alice', avatarUrl: '', count: 12 },
+        { id: 'user-bob', name: 'Bob Jones', username: 'bob', avatarUrl: '', count: 8 }
+      ],
+      crRequests: [
+        {
+          id: 'cr-1',
+          repoFullName: 'google/antigravity',
+          prNumber: 122,
+          prTitle: 'feat: add premium standalone html mock client',
+          prUrl: 'https://github.com/google/antigravity/pull/122',
+          additions: 140,
+          deletions: 5,
+          requiredReviewers: 2,
+          status: 'OPEN',
+          requesterId: 'user-harel',
+          assignments: [
+            { reviewerId: 'user-alice', status: 'ASSIGNED' }
+          ],
+          createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
+        },
+        {
+          id: 'cr-2',
+          repoFullName: 'vercel/next.js',
+          prNumber: 984,
+          prTitle: 'fix: reduce page margin top spacing',
+          prUrl: 'https://github.com/vercel/next.js/pull/984',
+          additions: 12,
+          deletions: 15,
+          requiredReviewers: 1,
+          status: 'OPEN',
+          requesterId: 'user-alice',
+          assignments: [],
+          createdAt: new Date(Date.now() - 3600000 * 8).toISOString() // 8 hours ago
+        },
+        {
+          id: 'cr-3',
+          repoFullName: 'facebook/react',
+          prNumber: 459,
+          prTitle: 'docs: improve typescript definitions',
+          prUrl: 'https://github.com/facebook/react/pull/459',
+          additions: 2,
+          deletions: 1,
+          requiredReviewers: 2,
+          status: 'OPEN',
+          requesterId: 'user-bob',
+          assignments: [
+            { reviewerId: 'user-harel', status: 'ASSIGNED' },
+            { reviewerId: 'user-alice', status: 'ASSIGNED' }
+          ],
+          createdAt: new Date(Date.now() - 3600000 * 24).toISOString() // 1 day ago
+        }
+      ]
+    };
+
+    // GitHub Mock Pull Requests Pool
+    const GITHUB_PR_POOL = {
+      'google/antigravity': [
+        { prNumber: 140, prTitle: 'perf: accelerate compiler engine by 40%', additions: 280, deletions: 12 },
+        { prNumber: 142, prTitle: 'refactor: simplify model context parser', additions: 45, deletions: 32 }
+      ],
+      'vercel/next.js': [
+        { prNumber: 1012, prTitle: 'feat: add native responsive css grids', additions: 65, deletions: 2 },
+        { prNumber: 1045, prTitle: 'bug: fix theme flicker during static builds', additions: 18, deletions: 8 }
+      ],
+      'facebook/react': [
+        { prNumber: 520, prTitle: 'feat: optimize component hydration sequences', additions: 190, deletions: 45 },
+        { prNumber: 532, prTitle: 'fix: suppress false positive server warnings', additions: 9, deletions: 1 }
+      ]
+    };
+
+    class CRMatcherApp {
+      constructor() {
+        this.db = null;
+        this.currentTab = 'board'; // board, leaderboard
+        this.filterRepo = 'all';
+        this.filterStatus = 'OPEN';
+        this.sortBy = 'newest';
+        this.selectedPr = null;
+        this.initDatabase();
+      }
+
+      initDatabase() {
+        const stored = localStorage.getItem('crmatcher_standalone_db');
+        if (stored) {
+          try {
+            this.db = JSON.parse(stored);
+          } catch {
+            this.db = DEFAULT_DB;
+          }
+        } else {
+          this.db = DEFAULT_DB;
+          this.saveDatabase();
+        }
+      }
+
+      saveDatabase() {
+        localStorage.setItem('crmatcher_standalone_db', JSON.stringify(this.db));
+      }
+
+      // Toast alerts
+      addToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let emoji = '✓';
+        if (type === 'error') emoji = '✕';
+        if (type === 'info') emoji = 'ℹ';
+        
+        toast.innerHTML = `<span>${emoji}</span><div>${message}</div>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(10px)';
+          toast.style.transition = 'all 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        document.getElementById('theme-toggle').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+      }
+
+      // VIEW ROUTER
+      render() {
+        const viewport = document.getElementById('app-viewport');
+        const userHeader = document.getElementById('nav-user');
+        
+        if (!this.db.currentUser) {
+          userHeader.style.display = 'none';
+          viewport.innerHTML = this.getLandingViewHTML();
+          return;
+        }
+
+        // Display user avatar
+        userHeader.style.display = 'block';
+        document.getElementById('user-display-name').innerText = this.db.currentUser.name;
+        document.getElementById('user-avatar').innerHTML = this.db.currentUser.name[0].toUpperCase();
+
+        const activeUser = this.db.users.find(u => u.id === this.db.currentUser.id);
+        if (!activeUser || !this.db.currentUser.teamId) {
+          viewport.innerHTML = this.getTeamViewHTML();
+          return;
+        }
+
+        viewport.innerHTML = this.getDashboardHTML();
+        this.renderStats();
+        
+        if (this.currentTab === 'board') {
+          this.renderBoard();
+        } else {
+          this.renderLeaderboard();
+        }
+      }
+
+      // SIMULATED USER METHODS
+      loginAs(username) {
+        let user = this.db.users.find(u => u.username === username);
+        if (!user) {
+          user = { id: `user-${username}`, name: username.charAt(0).toUpperCase() + username.slice(1), username: username, count: 0 };
+          this.db.users.push(user);
+        }
+        this.db.currentUser = { id: user.id, name: user.name, teamId: null };
+        this.saveDatabase();
+        this.addToast(`Successfully authenticated as ${user.name}!`, 'success');
+        this.render();
+      }
+
+      logout() {
+        this.db.currentUser = null;
+        this.saveDatabase();
+        this.addToast('Signed out successfully.', 'info');
+        this.render();
+      }
+
+      // SIMULATED TEAM METHODS
+      createTeam(name, description) {
+        if (!name.trim()) {
+          this.addToast('Team name cannot be empty', 'error');
+          return;
+        }
+        const teamId = `team-${Date.now()}`;
+        const newTeam = { id: teamId, name: name, description: description };
+        this.db.teams.push(newTeam);
+        
+        this.db.currentUser.teamId = teamId;
+        this.saveDatabase();
+        this.addToast(`Team "${name}" created successfully!`, 'success');
+        this.render();
+      }
+
+      joinTeam(teamId) {
+        const team = this.db.teams.find(t => t.id === teamId);
+        if (!team) {
+          this.addToast('Team not found', 'error');
+          return;
+        }
+        this.db.currentUser.teamId = teamId;
+        this.saveDatabase();
+        this.addToast(`Joined team ${team.name}!`, 'success');
+        this.render();
+      }
+
+      // INLINE STATS ROW CALCULATION
+      renderStats() {
+        const teamId = this.db.currentUser.teamId;
+        const currentUserId = this.db.currentUser.id;
+
+        const openCRs = this.db.crRequests.filter(cr => cr.status === 'OPEN').length;
+        const myPending = this.db.crRequests.filter(cr => 
+          cr.status === 'OPEN' && cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED')
+        ).length;
+
+        // Calculate this week mock value
+        const completedThisWeek = this.db.crRequests.filter(cr => cr.status === 'COMPLETED').length;
+
+        document.getElementById('stat-open-reviews').innerText = openCRs;
+        document.getElementById('stat-my-pending').innerText = myPending;
+        document.getElementById('stat-completed-week').innerText = completedThisWeek;
+      }
+
+      // SWITCH TABS
+      switchTab(tab) {
+        this.currentTab = tab;
+        document.getElementById('tab-board').className = `tabBtn ${tab === 'board' ? 'tabBtnActive' : ''}`;
+        document.getElementById('tab-leaderboard').className = `tabBtn ${tab === 'leaderboard' ? 'tabBtnActive' : ''}`;
+        this.render();
+      }
+
+      // MODAL CONTROLLERS
+      openRequestModal() {
+        const modal = document.getElementById('request-modal');
+        const repoSelect = document.getElementById('modal-select-repo');
+        
+        // Populate tracking repositories
+        repoSelect.innerHTML = this.db.trackedRepos.map(repo => `<option value="${repo}">${repo}</option>`).join('');
+        this.handleModalRepoChange();
+        
+        modal.style.display = 'flex';
+      }
+
+      closeRequestModal() {
+        document.getElementById('request-modal').style.display = 'none';
+        this.selectedPr = null;
+      }
+
+      handleModalRepoChange() {
+        const repo = document.getElementById('modal-select-repo').value;
+        const prListContainer = document.getElementById('modal-pr-list');
+        
+        const prs = GITHUB_PR_POOL[repo] || [];
+        
+        if (prs.length === 0) {
+          prListContainer.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--color-muted); font-size: 0.875rem;">No open PRs found in GitHub</div>';
+          return;
+        }
+
+        prListContainer.innerHTML = prs.map((pr, idx) => `
+          <div class="prSelectCard" id="pr-card-${idx}" onclick="app.selectPrCard(${idx}, '${repo}')">
+            <h5>#${pr.prNumber}: ${pr.prTitle}</h5>
+            <span>+${pr.additions} / -${pr.deletions} lines changed</span>
+          </div>
+        `).join('');
+      }
+
+      selectPrCard(idx, repo) {
+        const prs = GITHUB_PR_POOL[repo] || [];
+        this.selectedPr = prs[idx];
+        
+        // Toggle active class
+        document.querySelectorAll('.prSelectCard').forEach(c => c.classList.remove('active'));
+        document.getElementById(`pr-card-${idx}`).classList.add('active');
+      }
+
+      submitRequestCR() {
+        if (!this.selectedPr) {
+          this.addToast('Please select a pull request first.', 'error');
+          return;
+        }
+
+        const repo = document.getElementById('modal-select-repo').value;
+        const reviewersCount = parseInt(document.getElementById('modal-reviewers').value);
+
+        const newCR = {
+          id: `cr-${Date.now()}`,
+          repoFullName: repo,
+          prNumber: this.selectedPr.prNumber,
+          prTitle: this.selectedPr.prTitle,
+          prUrl: `https://github.com/${repo}/pull/${this.selectedPr.prNumber}`,
+          additions: this.selectedPr.additions,
+          deletions: this.selectedPr.deletions,
+          requiredReviewers: reviewersCount,
+          status: 'OPEN',
+          requesterId: this.db.currentUser.id,
+          assignments: [],
+          createdAt: new Date().toISOString()
+        };
+
+        this.db.crRequests.unshift(newCR);
+        
+        // Remove from pool so it can't be requested again immediately
+        GITHUB_PR_POOL[repo] = GITHUB_PR_POOL[repo].filter(p => p.prNumber !== this.selectedPr.prNumber);
+
+        this.saveDatabase();
+        this.addToast('Code review request created successfully!', 'success');
+        this.closeRequestModal();
+        this.render();
+      }
+
+      // SETTINGS MODAL
+      openSettingsModal() {
+        document.getElementById('settings-modal').style.display = 'flex';
+        this.renderSettingsRepos();
+      }
+
+      closeSettingsModal() {
+        document.getElementById('settings-modal').style.display = 'none';
+      }
+
+      renderSettingsRepos() {
+        const container = document.getElementById('settings-repo-list');
+        container.innerHTML = this.db.trackedRepos.map(repo => `
+          <div class="repoListItem">
+            <span>📁 ${repo}</span>
+            <button class="btn btn-danger btn-sm" onclick="app.removeTrackedRepo('${repo}')">Remove</button>
+          </div>
+        `).join('');
+      }
+
+      addTrackedRepo() {
+        const input = document.getElementById('settings-new-repo');
+        const val = input.value.trim();
+        
+        if (!val || !val.includes('/')) {
+          this.addToast('Please enter repository in owner/repo format', 'error');
+          return;
+        }
+
+        if (this.db.trackedRepos.includes(val)) {
+          this.addToast('Repository already tracked', 'error');
+          return;
+        }
+
+        this.db.trackedRepos.push(val);
+        
+        // Mock seed extra PRs for it
+        GITHUB_PR_POOL[val] = [
+          { prNumber: 201, prTitle: 'feat: apply design modifications', additions: 180, deletions: 20 },
+          { prNumber: 205, prTitle: 'fix: resolve layout spacing issues', additions: 45, deletions: 12 }
+        ];
+
+        this.saveDatabase();
+        input.value = '';
+        this.addToast(`Now tracking ${val}`, 'success');
+        this.renderSettingsRepos();
+        this.render();
+      }
+
+      removeTrackedRepo(repo) {
+        this.db.trackedRepos = this.db.trackedRepos.filter(r => r !== repo);
+        this.saveDatabase();
+        this.addToast(`Stopped tracking ${repo}`, 'info');
+        this.renderSettingsRepos();
+        this.render();
+      }
+
+      copyInviteCode() {
+        const inp = document.getElementById('settings-invite-code');
+        inp.select();
+        document.execCommand('copy');
+        this.addToast('Invite code copied to clipboard!', 'success');
+      }
+
+      // BOARD WORKFLOW LIFE CYCLE ACTIONS
+      takeCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
+        const currentUserId = this.db.currentUser.id;
+        
+        if (cr.requesterId === currentUserId) {
+          this.addToast("You can't review your own PR!", 'error');
+          return;
+        }
+
+        if (cr.assignments.some(a => a.reviewerId === currentUserId)) {
+          this.addToast("You're already assigned to this review.", 'error');
+          return;
+        }
+
+        cr.assignments.push({ reviewerId: currentUserId, status: 'ASSIGNED' });
+        this.saveDatabase();
+        this.addToast("You have taken this code review! Go verify their code.", 'success');
+        this.render();
+      }
+
+      completeCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
+        const currentUserId = this.db.currentUser.id;
+        const assignment = cr.assignments.find(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED');
+        if (!assignment) return;
+
+        assignment.status = 'COMPLETED';
+        assignment.completedAt = new Date().toISOString();
+
+        // Increment leaderboard score for the reviewer!
+        const user = this.db.users.find(u => u.id === currentUserId);
+        if (user) {
+          user.count = (user.count || 0) + 1;
+        }
+
+        // If all slots are completed, mark entire CR as completed!
+        if (cr.assignments.filter(a => a.status === 'COMPLETED').length >= cr.requiredReviewers) {
+          cr.status = 'COMPLETED';
+        }
+
+        this.saveDatabase();
+        this.addToast("Code review marked as completed! Points added.", 'success');
+        this.render();
+      }
+
+      cancelCR(crId) {
+        const cr = this.db.crRequests.find(c => c.id === crId);
+        if (!cr) return;
+
+        cr.status = 'CANCELLED';
+        this.saveDatabase();
+        this.addToast("Review request successfully cancelled.", 'info');
+        this.render();
+      }
+
+      // SIMULATED GITHUB API STATUS SYNCER
+      async syncWithGitHub() {
+        const syncBtn = document.getElementById('sync-github-btn');
+        syncBtn.innerText = 'Syncing...';
+        syncBtn.disabled = true;
+        
+        this.addToast('Contacting simulated GitHub API via Octokit...', 'info');
+
+        // Let's run a 1.2 second loading state simulation
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
+        // Sync logic: Find active open reviews and randomly resolve them (simulates someone merging PRs on GitHub)
+        const openReviews = this.db.crRequests.filter(cr => cr.status === 'OPEN');
+        let updatedCount = 0;
+
+        if (openReviews.length > 0) {
+          // Select 1 or 2 reviews to complete/merge
+          const countToResolve = Math.min(openReviews.length, Math.floor(Math.random() * 2) + 1);
+          
+          for (let i = 0; i < countToResolve; i++) {
+            const cr = openReviews[Math.floor(Math.random() * openReviews.length)];
+            
+            // Randomly merge (COMPLETED) or close (CANCELLED)
+            const outcome = Math.random() > 0.3 ? 'COMPLETED' : 'CANCELLED';
+            cr.status = outcome;
+
+            if (outcome === 'COMPLETED') {
+              // Ensure assigned reviewers receive their scores!
+              cr.assignments.forEach(a => {
+                if (a.status === 'ASSIGNED') {
+                  a.status = 'COMPLETED';
+                  a.completedAt = new Date().toISOString();
+                  const reviewer = this.db.users.find(u => u.id === a.reviewerId);
+                  if (reviewer) reviewer.count = (reviewer.count || 0) + 1;
+                }
+              });
+            }
+            updatedCount++;
+          }
+        }
+
+        this.saveDatabase();
+        syncBtn.innerText = 'Sync with GitHub';
+        syncBtn.disabled = false;
+
+        if (updatedCount > 0) {
+          this.addToast(`Successfully synced PR statuses! Merged/Closed ${updatedCount} PRs in GitHub.`, 'success');
+        } else {
+          this.addToast('All PRs are currently up to date on GitHub.', 'success');
+        }
+        
+        this.render();
+      }
+
+      // RENDER REVIEW BOARD VIEW
+      renderBoard() {
+        const container = document.getElementById('board-container');
+        
+        // Filter unique repos
+        const repos = [...new Set(this.db.crRequests.map(c => c.repoFullName).filter(Boolean))];
+        const repoSelect = document.getElementById('filter-repo');
+        
+        // Save current choice
+        const prevRepo = this.filterRepo;
+        repoSelect.innerHTML = '<option value="all">All Repos</option>' + 
+          repos.map(r => `<option value="${r}">${r}</option>`).join('');
+        repoSelect.value = prevRepo;
+
+        // Apply filters
+        let list = this.db.crRequests;
+
+        if (this.filterRepo !== 'all') {
+          list = list.filter(cr => cr.repoFullName === this.filterRepo);
+        }
+
+        if (this.filterStatus !== 'ALL') {
+          list = list.filter(cr => cr.status === this.filterStatus);
+        }
+
+        // Apply sorts
+        if (this.sortBy === 'newest') {
+          list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        } else if (this.sortBy === 'oldest') {
+          list = [...list].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        } else if (this.sortBy === 'size') {
+          list = [...list].sort((a, b) => ((b.additions || 0) + (b.deletions || 0)) - ((a.additions || 0) + (a.deletions || 0)));
+        }
+
+        document.getElementById('board-count-badge').innerText = list.length;
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div class="emptyState">
+              <div class="emptyStateIcon">🎉</div>
+              <h3>No reviews found</h3>
+              <p>Try changing your filters or ask for a new code review request!</p>
+            </div>
+          `;
+          return;
+        }
+
+        const currentUserId = this.db.currentUser.id;
+
+        container.innerHTML = `<div class="crGrid">${list.map(cr => {
+          const requester = this.db.users.find(u => u.id === cr.requesterId) || { name: 'Unknown' };
+          const isRequester = cr.requesterId === currentUserId;
+          const isAssigned = cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'ASSIGNED');
+          const isAssignedCompleted = cr.assignments.some(a => a.reviewerId === currentUserId && a.status === 'COMPLETED');
+          
+          let actionBtn = '';
+          if (cr.status === 'OPEN') {
+            if (isRequester) {
+              actionBtn = `<button class="btn btn-danger btn-sm" onclick="app.cancelCR('${cr.id}')">Cancel</button>`;
+            } else if (isAssigned) {
+              actionBtn = `<button class="btn btn-primary btn-sm" onclick="app.completeCR('${cr.id}')">✓ Complete</button>`;
+            } else if (cr.assignments.length < cr.requiredReviewers) {
+              actionBtn = `<button class="btn btn-secondary btn-sm" onclick="app.takeCR('${cr.id}')">Take CR</button>`;
+            }
+          }
+
+          const statusBadge = cr.status !== 'OPEN' ? `
+            <span class="badge ${cr.status === 'COMPLETED' ? 'badge-completed' : 'badge-cancelled'}">
+              ${cr.status}
+            </span>
+          ` : '';
+
+          return `
+            <article class="crCard">
+              <div class="crCardHeader">
+                <div class="avatar">${requester.name[0].toUpperCase()}</div>
+                <div class="crCardTitle">
+                  <h4 title="${cr.prTitle}">
+                    <a href="${cr.prUrl}" target="_blank" rel="noopener noreferrer">${cr.prTitle}</a>
+                  </h4>
+                  <div class="repoName">📁 ${cr.repoFullName}</div>
+                </div>
+                ${statusBadge}
+              </div>
+
+              <div class="crMeta">
+                <div class="diffStats">
+                  <span class="additions">+${cr.additions || 0}</span>
+                  <span class="deletions">-${cr.deletions || 0}</span>
+                </div>
+                <div class="text-secondary">
+                  👤 ${cr.assignments.length}/${cr.requiredReviewers} reviewers
+                </div>
+                <span class="timeAgo">${timeAgo(cr.createdAt)}</span>
+              </div>
+
+              <div class="crCardFooter">
+                <div class="requesterInfo">
+                  Requested by <strong>${requester.name}</strong>
+                </div>
+                <div class="cardActions">
+                  ${actionBtn}
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('')}</div>`;
+      }
+
+      // RENDER PREMIUM METALLIC LEADERBOARD VIEW
+      renderLeaderboard() {
+        const container = document.getElementById('leaderboard-container');
+        
+        // Sort users by count
+        const sorted = [...this.db.users].sort((a, b) => b.count - a.count);
+
+        if (sorted.length === 0) {
+          container.innerHTML = '<div class="emptyState"><p>No user scores registered yet.</p></div>';
+          return;
+        }
+
+        const top3 = sorted.slice(0, 3);
+        const rest = sorted.slice(3);
+
+        // Podium re-order: 2nd (Silver), 1st (Gold), 3rd (Bronze)
+        const podiumOrder = [];
+        if (top3[1]) podiumOrder.push({ user: top3[1], type: 'silver', rank: '2' });
+        if (top3[0]) podiumOrder.push({ user: top3[0], type: 'gold', rank: '1' });
+        if (top3[2]) podiumOrder.push({ user: top3[2], type: 'bronze', rank: '3' });
+
+        // If less than 2, just show what we have in original order
+        const finalPodium = podiumOrder.length >= 2 ? podiumOrder : top3.map((u, i) => ({
+          user: u,
+          type: i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze',
+          rank: String(i + 1)
+        }));
+
+        let podiumHTML = `<div class="podium">`;
+        finalPodium.forEach(slot => {
+          podiumHTML += `
+            <div class="podiumSlot ${slot.type}">
+              <div class="podiumAvatar">
+                <div class="podiumAvatarFallback" style="width: 100%; height: 100%;">
+                  ${slot.user.name[0].toUpperCase()}
+                </div>
+                <span class="podiumRank">${slot.rank}</span>
+              </div>
+              <span class="podiumName">${slot.user.name}</span>
+              <span class="podiumCount">${slot.user.count}</span>
+              <span class="podiumLabel">reviews</span>
+            </div>
+          `;
+        });
+        podiumHTML += `</div>`;
+
+        let tableHTML = '';
+        if (rest.length > 0) {
+          tableHTML = `
+            <table class="leaderboardTable">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Member</th>
+                  <th style="text-align: right;">Reviews Completed</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rest.map((user, idx) => `
+                  <tr>
+                    <td class="rankCell">#${idx + 4}</td>
+                    <td>
+                      <div class="flex align-center" style="gap: 0.5rem;">
+                        <div class="avatar" style="width: 1.5rem; height: 1.5rem; font-size: 0.75rem;">
+                          ${user.name[0].toUpperCase()}
+                        </div>
+                        <strong>${user.name}</strong>
+                      </div>
+                    </td>
+                    <td class="countCell">${user.count}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+
+        container.innerHTML = podiumHTML + tableHTML;
+      }
+
+      // VIEWS INJECTORS
+      getLandingViewHTML() {
+        return `
+          <div class="landingView">
+            <h1 class="heroTitle">CR Matcher</h1>
+            <p class="heroSubtitle">Streamline code reviews, match automatically with your teammates, and gamify code quality.</p>
+            <button class="btn btn-primary" onclick="app.loginAs('harel')" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
+              Sign In with GitHub
+            </button>
+            <div class="cardGrid">
+              <div class="featureCard">
+                <h3>👥 Team Hub</h3>
+                <p>Track team members, invitations, and active review board assignments.</p>
+              </div>
+              <div class="featureCard">
+                <h3>🚀 Octokit Integration</h3>
+                <p>Sync code review requests and pull request status automatically.</p>
+              </div>
+              <div class="featureCard">
+                <h3>🏆 Metal Rankings</h3>
+                <p>Level up code quality metrics and claim gold ranking headers.</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      getTeamViewHTML() {
+        const teams = this.db.teams;
+        return `
+          <div class="teamView">
+            <h2 class="viewTitle">Select or Create a Team</h2>
+            <p class="text-secondary" style="margin-bottom: 1.5rem;">You need to join a team in order to review pull requests.</p>
+            
+            ${teams.length > 0 ? `
+              <div class="formGroup">
+                <label for="select-existing-team">Join Existing Team</label>
+                <select id="select-existing-team" class="select" style="margin-bottom: 0.75rem;">
+                  ${teams.map(t => `<option value="${t.id}">${t.name} (${t.description || 'No description'})</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary" onclick="app.joinTeam(document.getElementById('select-existing-team').value)">
+                  Join Selected Team
+                </button>
+              </div>
+              <div class="divider"><span>or</span></div>
+            ` : ''}
+
+            <div class="formGroup">
+              <label for="create-team-name">Create a New Team</label>
+              <input id="create-team-name" class="input" type="text" placeholder="e.g. Team Alpha" style="margin-bottom: 0.75rem;">
+              <input id="create-team-desc" class="input" type="text" placeholder="Description (optional)" style="margin-bottom: 0.75rem;">
+              <button class="btn btn-primary" onclick="app.createTeam(document.getElementById('create-team-name').value, document.getElementById('create-team-desc').value)">
+                Create Team
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      getDashboardHTML() {
+        const team = this.db.teams.find(t => t.id === this.db.currentUser.teamId) || { name: 'Your Team' };
+        return `
+          <div class="dashboardView">
+            <!-- Header layout -->
+            <div class="teamHeader">
+              <div class="teamInfo">
+                <h1>${team.name}</h1>
+                ${team.description ? `<p class="text-secondary">${team.description}</p>` : ''}
+              </div>
+              <div class="headerActions">
+                <button class="btn btn-primary" onclick="app.openRequestModal()">Ask for Code Review</button>
+                <button class="btn btn-secondary" onclick="app.openSettingsModal()">⚙️ Settings</button>
+              </div>
+            </div>
+
+            <!-- Stats row inline tags -->
+            <div class="statsRow">
+              <div class="statTag">
+                <span id="stat-open-reviews" class="statTagValue">0</span>
+                <span class="statTagLabel">Open Reviews</span>
+              </div>
+              <div class="statTag">
+                <span id="stat-my-pending" class="statTagValue">0</span>
+                <span class="statTagLabel">My Pending</span>
+              </div>
+              <div class="statTag">
+                <span id="stat-completed-week" class="statTagValue">0</span>
+                <span class="statTagLabel">Completed This Week</span>
+              </div>
+            </div>
+
+            <!-- Tab switch -->
+            <div class="tabSwitch">
+              <button id="tab-board" class="tabBtn tabBtnActive" onclick="app.switchTab('board')">📋 Review Board</button>
+              <button id="tab-leaderboard" class="tabBtn" onclick="app.switchTab('leaderboard')">🏆 Leaderboard</button>
+            </div>
+
+            <!-- Content viewport slots -->
+            <div id="tab-content">
+              ${this.currentTab === 'board' ? `
+                <div class="boardHeader">
+                  <h3 class="boardTitle">
+                    Active Reviews
+                    <span id="board-count-badge" class="countBadge">0</span>
+                  </h3>
+                  <div class="filtersRow">
+                    <button id="sync-github-btn" class="btn btn-secondary btn-sm" onclick="app.syncWithGitHub()">
+                      Sync with GitHub
+                    </button>
+                    
+                    <select id="filter-status" class="select" style="width: auto; padding: 0.25rem 2rem 0.25rem 0.5rem;" onchange="app.handleFilterStatusChange(this.value)">
+                      <option value="OPEN">Active Reviews</option>
+                      <option value="COMPLETED">History (Completed)</option>
+                      <option value="CANCELLED">History (Cancelled)</option>
+                      <option value="ALL">All Reviews</option>
+                    </select>
+
+                    <select id="filter-repo" class="select" style="width: auto; padding: 0.25rem 2rem 0.25rem 0.5rem;" onchange="app.handleFilterRepoChange(this.value)">
+                      <option value="all">All Repos</option>
+                      <!-- Dynamic -->
+                    </select>
+
+                    <select id="sort-by" class="select" style="width: auto; padding: 0.25rem 2rem 0.25rem 0.5rem;" onchange="app.handleSortChange(this.value)">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="size">Largest First</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="board-container"></div>
+              ` : `
+                <div id="leaderboard-container"></div>
+              `}
+            </div>
+          </div>
+        `;
+      }
+
+      handleFilterStatusChange(val) {
+        this.filterStatus = val;
+        this.renderBoard();
+      }
+
+      handleFilterRepoChange(val) {
+        this.filterRepo = val;
+        this.renderBoard();
+      }
+
+      handleSortChange(val) {
+        this.sortBy = val;
+        this.renderBoard();
+      }
+    }
+
+    // Instantiation
+    const app = new CRMatcherApp();
+    window.addEventListener('DOMContentLoaded', () => app.render());
+  </script>
+</body>
+</html>
