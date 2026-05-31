@@ -966,7 +966,7 @@
       }
 
       initDatabase() {
-        const stored = localStorage.getItem('crmatcher_pure_offline_db');
+        const stored = localStorage.getItem('crmatcher_pure_offline_db_v2');
         if (stored) {
           try {
             this.db = JSON.parse(stored);
@@ -983,12 +983,12 @@
       }
 
       saveDatabase() {
-        localStorage.setItem('crmatcher_pure_offline_db', JSON.stringify(this.db));
+        localStorage.setItem('crmatcher_pure_offline_db_v2', JSON.stringify(this.db));
       }
 
       resetDatabase() {
         if (confirm('Are you sure you want to reset all team data and active code reviews back to defaults?')) {
-          localStorage.removeItem('crmatcher_pure_offline_db');
+          localStorage.removeItem('crmatcher_pure_offline_db_v2');
           this.initDatabase();
           this.addToast('App data reset successfully!', 'success');
           this.closeSettingsModal();
@@ -1480,7 +1480,7 @@
               
               <div class="formGroup">
                 <label for="login-name">Your Name</label>
-                <input id="login-name" class="input" type="text" placeholder="Harel">
+                <input id="login-name" class="input" type="text" placeholder="">
               </div>
 
               <div class="formGroup">
